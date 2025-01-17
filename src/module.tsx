@@ -25,7 +25,7 @@ export default function Cursor(
 
   const { drawSelection } = useDraw(ctx);
   const { selected, showSelected, isSelected } = useSelection(params);
-  const { onDown, onUp, onMove } = useDetect(params);
+  const { onDown, onUp, onMove } = useDetect(params, selected);
   useResize(params);
 
   canvas.addEventListener('mousedown', onDown, false);

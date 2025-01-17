@@ -1,6 +1,7 @@
 import type { Layout, IBaseDef } from "@boardmeister/antetype-core"
 import { Event, ICursorParams, PositionEvent } from "@src/index";
 import { getAllClickedLayers, getLayerByPosition } from "@src/shared";
+import { Selected } from "@src/useSelection";
 
 export interface IDetect {
   onDown: (e: MouseEvent) => Promise<void>;
@@ -23,10 +24,11 @@ export interface IEventHover {
 }
 
 export interface IEvent {
+  isDown: boolean;
+  selected: Selected;
   down: IEventDown;
   hover: IEventHover;
 }
-
 
 export interface BaseEvent {
   origin: MouseEvent;
@@ -45,9 +47,12 @@ export default function useDetect(
   {
     injected: { herald },
     modules: { core }
-  }: ICursorParams
+  }: ICursorParams,
+  selected: Selected,
 ): IDetect {
   const eventState: IEvent = {
+    selected,
+    isDown: false,
     down: {
       layers: [],
       x: 0,
@@ -70,6 +75,7 @@ export default function useDetect(
   }
 
   const onDown = async (e: MouseEvent): Promise<void> => {
+    eventState.isDown = true;
     let { layerX: x, layerY: y } = e;
     const { shiftKey, ctrlKey } = e;
     const layout = core.meta.document.layout;
@@ -80,14 +86,21 @@ export default function useDetect(
     eventState.down.ctrlKey = ctrlKey;
     eventState.down.layers = getAllClickedLayers(layout, x, y);
 
-    void herald.dispatch(new CustomEvent<DownEvent>(Event.DOWN, { detail: {
-      origin: e,
-      target: eventState,
-    } }));
+    void herald.dispatch(new CustomEvent<DownEvent>(Event.DOWN, {
+      detail: {
+        origin: e,
+        target: eventState,
+      },
+      cancelable: true,
+    }));
   }
 
   const onUp = async (e: MouseEvent): Promise<void> => {
-    await herald.dispatch(new CustomEvent<UpEvent>(Event.UP, { detail: { origin: e, target: eventState } }));
+    eventState.isDown = false;
+    await herald.dispatch(new CustomEvent<UpEvent>(Event.UP, {
+      detail: { origin: e, target: eventState },
+      cancelable: true,
+    }));
     clearEventStateDown();
     await onMove(e);
   }
@@ -101,15 +114,21 @@ export default function useDetect(
     eventState.hover.y = y;
 
     if (newLayer !== eventState.hover.layer) {
-      await herald.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, { detail: {
-        origin: e,
-        target: eventState,
-        from: eventState.hover.layer,
-        to: newLayer,
-      } }));
+      await herald.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, {
+        detail: {
+          origin: e,
+          target: eventState,
+          from: eventState.hover.layer,
+          to: newLayer,
+        },
+        cancelable: true,
+      }));
     }
     eventState.hover.layer = newLayer;
-    await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, { detail: { origin: e, target: eventState } }));
+    await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
+      detail: { origin: e, target: eventState },
+      cancelable: true,
+    }));
   }
 
   const clearEventStateDown = (): void => {

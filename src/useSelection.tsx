@@ -1,16 +1,17 @@
 import { Event, ICursorParams } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
-import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
 import { ISelectionDef, selectionType } from "@src/module";
-import { getSizeAndStart } from "@src/shared";
+import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
 import { MoveEvent, UpEvent } from "@src/useDetect";
 
 export interface ISelection {
   selected: IIterableWeakMap<IBaseDef, true>;
   showSelected: () => void;
-  isSelected: (needle: IBaseDef) => IBaseDef|false
+  isSelected: (needle: IBaseDef) => IBaseDef|false;
 }
+
+export type Selected = IIterableWeakMap<IBaseDef, true>;
 
 export default function useSelection(
   {
@@ -18,7 +19,7 @@ export default function useSelection(
     injected: { herald }
   }: ICursorParams
 ): ISelection {
-  let selected = IterableWeakMap<IBaseDef, true>();
+  const selected = IterableWeakMap<IBaseDef, true>();
   let shown: ISelectionDef[] = [];
   let canMove = false;
   let skipUp = false;
@@ -26,8 +27,10 @@ export default function useSelection(
   const core = modules.core;
 
   const resetSelected = (): void => {
+    for (const key of selected.keys()) {
+      selected.delete(key);
+    }
     // @TODO add event when selection was cleared
-    selected = IterableWeakMap<IBaseDef, true>();
   }
 
   const resetSeeThroughStackMap = (): void => {
@@ -55,7 +58,7 @@ export default function useSelection(
   }
 
   const startSelectionMove = (e: CustomEvent<MoveEvent>): void => {
-    if (!canMove) {
+    if (e.defaultPrevented || !canMove) {
       return;
     }
 
@@ -83,38 +86,16 @@ export default function useSelection(
 
     selected.keys().forEach(layer => {
       // @TODO add event when layer was moved
-      if (layer.area) {
-        if (layer.start) {
-          setNewPositionOnOriginal(layer, movementX, movementY);
-        }
-        layer.area.start.x += movementX;
-        layer.area.start.y += movementY;
-      }
+      setNewPositionOnOriginal(modules, layer, movementX, movementY);
     });
 
     showSelected();
   }
 
-  const setNewPositionOnOriginal = (layer: IBaseDef, x: number, y: number): void => {
-    const area = layer.area?.start ?? {
-      x: 0,
-      y: 0,
-    };
-    layer.start.x += x;
-    layer.start.y += y;
-    const original = modules.core.clone.getOriginal(layer);
-    if (modules.workspace) {
-      const workspace = modules.workspace as IWorkspace;
-      original.start.x = workspace.toRelative(layer.start.x) as any;
-      original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
+  const selectionMouseUp = (event: CustomEvent<UpEvent>): void => {
+    if (event.defaultPrevented) {
       return;
     }
-
-    original.start.x = area.x + x;
-    original.start.y = area.y + y;
-  }
-
-  const selectionMouseUp = (event: CustomEvent<UpEvent>): void => {
     canMove = false;
     if (skipUp) {
       skipUp = false;
@@ -123,7 +104,7 @@ export default function useSelection(
     const { target: { down } }  = event.detail;
     const { shiftKey, ctrlKey } = down;
     if (!shiftKey && !ctrlKey) {
-      selected = IterableWeakMap();
+      resetSelected();
     }
 
     let isFirst = true;
@@ -178,7 +159,10 @@ export default function useSelection(
     // @TODO event when selection is visible
   }
 
-  const enableMove = (): void => {
+  const enableMove = (e: CustomEvent<MoveEvent>): void => {
+    if (e.defaultPrevented) {
+      return;
+    }
     canMove = true;
   }
 

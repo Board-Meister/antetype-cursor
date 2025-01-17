@@ -183,20 +183,46 @@ var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
   }
   return clicked;
 };
+var setNewPositionOnOriginal = (modules, layer, x, y) => {
+  if (layer.area) {
+    if (!isNaN(layer.start.x)) layer.area.start.x += x;
+    if (!isNaN(layer.start.y)) layer.area.start.y += y;
+  }
+  if (layer.start) {
+    if (!isNaN(layer.start.x)) layer.start.x += x;
+    if (!isNaN(layer.start.y)) layer.start.y += y;
+  }
+  const original = modules.core.clone.getOriginal(layer);
+  if (modules.workspace) {
+    const workspace = modules.workspace;
+    if (original.start) {
+      if (!isNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
+      if (!isNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
+    }
+    return;
+  }
+  const area = layer.area?.start ?? layer.start;
+  if (area && original.start) {
+    if (!isNaN(original.start.x)) original.start.x = area.x + x;
+    if (!isNaN(original.start.y)) original.start.y = area.y + y;
+  }
+};
 
 // src/useSelection.tsx
 function useSelection({
   modules,
   injected: { herald }
 }) {
-  let selected = IterableWeakMap();
+  const selected = IterableWeakMap();
   let shown = [];
   let canMove = false;
   let skipUp = false;
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
   const resetSelected = () => {
-    selected = IterableWeakMap();
+    for (const key of selected.keys()) {
+      selected.delete(key);
+    }
   };
   const resetSeeThroughStackMap = () => {
     seeThroughStackMap = IterableWeakMap();
@@ -218,7 +244,7 @@ function useSelection({
     return false;
   };
   const startSelectionMove = (e) => {
-    if (!canMove) {
+    if (e.defaultPrevented || !canMove) {
       return;
     }
     skipUp = true;
@@ -241,34 +267,14 @@ function useSelection({
       selected.set(selectedLayer, true);
     }
     selected.keys().forEach((layer) => {
-      if (layer.area) {
-        if (layer.start) {
-          setNewPositionOnOriginal(layer, movementX, movementY);
-        }
-        layer.area.start.x += movementX;
-        layer.area.start.y += movementY;
-      }
+      setNewPositionOnOriginal(modules, layer, movementX, movementY);
     });
     showSelected();
   };
-  const setNewPositionOnOriginal = (layer, x, y) => {
-    const area = layer.area?.start ?? {
-      x: 0,
-      y: 0
-    };
-    layer.start.x += x;
-    layer.start.y += y;
-    const original = modules.core.clone.getOriginal(layer);
-    if (modules.workspace) {
-      const workspace = modules.workspace;
-      original.start.x = workspace.toRelative(layer.start.x);
-      original.start.y = workspace.toRelative(layer.start.y, "y");
+  const selectionMouseUp = (event) => {
+    if (event.defaultPrevented) {
       return;
     }
-    original.start.x = area.x + x;
-    original.start.y = area.y + y;
-  };
-  const selectionMouseUp = (event) => {
     canMove = false;
     if (skipUp) {
       skipUp = false;
@@ -277,7 +283,7 @@ function useSelection({
     const { target: { down } } = event.detail;
     const { shiftKey, ctrlKey } = down;
     if (!shiftKey && !ctrlKey) {
-      selected = IterableWeakMap();
+      resetSelected();
     }
     let isFirst = true;
     let wasSelected = false;
@@ -322,7 +328,10 @@ function useSelection({
     }
     core.view.redraw();
   };
-  const enableMove = () => {
+  const enableMove = (e) => {
+    if (e.defaultPrevented) {
+      return;
+    }
     canMove = true;
   };
   herald.register("antetype.cursor.on.down" /* DOWN */, enableMove);
@@ -339,8 +348,10 @@ function useSelection({
 function useDetect({
   injected: { herald },
   modules: { core }
-}) {
+}, selected) {
   const eventState = {
+    selected,
+    isDown: false,
     down: {
       layers: [],
       x: 0,
@@ -360,6 +371,7 @@ function useDetect({
     return event.detail;
   };
   const onDown = async (e) => {
+    eventState.isDown = true;
     let { layerX: x, layerY: y } = e;
     const { shiftKey, ctrlKey } = e;
     const layout = core.meta.document.layout;
@@ -369,13 +381,20 @@ function useDetect({
     eventState.down.shiftKey = shiftKey;
     eventState.down.ctrlKey = ctrlKey;
     eventState.down.layers = getAllClickedLayers(layout, x, y);
-    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, { detail: {
-      origin: e,
-      target: eventState
-    } }));
+    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, {
+      detail: {
+        origin: e,
+        target: eventState
+      },
+      cancelable: true
+    }));
   };
   const onUp = async (e) => {
-    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, { detail: { origin: e, target: eventState } }));
+    eventState.isDown = false;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
     clearEventStateDown();
     await onMove(e);
   };
@@ -387,15 +406,21 @@ function useDetect({
     eventState.hover.x = x;
     eventState.hover.y = y;
     if (newLayer !== eventState.hover.layer) {
-      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, { detail: {
-        origin: e,
-        target: eventState,
-        from: eventState.hover.layer,
-        to: newLayer
-      } }));
+      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, {
+        detail: {
+          origin: e,
+          target: eventState,
+          from: eventState.hover.layer,
+          to: newLayer
+        },
+        cancelable: true
+      }));
     }
     eventState.hover.layer = newLayer;
-    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, { detail: { origin: e, target: eventState } }));
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
   };
   const clearEventStateDown = () => {
     eventState.down.x = 0;
@@ -433,44 +458,157 @@ function useDraw(ctx) {
 // src/useResize.tsx
 function useResize({
   injected: { herald },
-  canvas
+  canvas,
+  modules
 }) {
+  let mode = 8 /* NONE */, disableResize = false;
   const determinateCursorType = (layer, target) => {
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
-    const bufferTop = 5, bufferBottom = 15;
+    const bufferTop = 10, bufferBottom = 0;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom, right = x <= sX + bufferBottom + w && x >= sX - bufferTop + w, bottom = y <= sY + bufferBottom + h && y >= sY - bufferTop + h, left = x <= sX + bufferTop && x >= sX - bufferBottom;
     if (top && left || bottom && right) {
+      mode = top && left ? 6 /* TOP_LEFT */ : 5 /* BOTTOM_RIGHT */;
       return "nwse-resize";
     }
     if (top && right || bottom && left) {
+      mode = top && right ? 4 /* TOP_RIGHT */ : 7 /* BOTTOM_LEFT */;
       return "nesw-resize";
     }
     if (top || bottom) {
+      mode = top ? 0 /* TOP */ : 1 /* BOTTOM */;
       return "ns-resize";
     }
     if (left || right) {
+      mode = left ? 3 /* LEFT */ : 2 /* RIGHT */;
       return "ew-resize";
     }
+    resetMode();
     return "pointer";
+  };
+  const resetMode = () => {
+    mode = 8 /* NONE */;
+  };
+  const handleMove = (e) => {
+    if (disableResize) {
+      return;
+    }
+    canvasCursorTypeChange(e);
+    resizeSelected(e);
+  };
+  const resizeSelected = (e) => {
+    const { target, origin } = e.detail;
+    const layers = target.selected.keys();
+    if (0 === layers.length || 8 /* NONE */ === mode || !target.isDown) {
+      return;
+    }
+    let { movementY: y, movementX: x } = origin;
+    if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
+    if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
+    for (const layer of layers) {
+      resize(layer, x, y);
+    }
+  };
+  const resize = (layer, x, y) => {
+    if (mode !== 5 /* BOTTOM_RIGHT */ && mode !== 2 /* RIGHT */ && mode !== 1 /* BOTTOM */) {
+      setNewPositionOnOriginal(
+        modules,
+        layer,
+        mode === 4 /* TOP_RIGHT */ ? 0 : x,
+        mode === 7 /* BOTTOM_LEFT */ ? 0 : y
+      );
+    }
+    if (mode === 0 /* TOP */ || mode === 6 /* TOP_LEFT */ || mode === 4 /* TOP_RIGHT */) {
+      y *= -1;
+    }
+    if (mode === 3 /* LEFT */ || mode === 6 /* TOP_LEFT */ || mode === 7 /* BOTTOM_LEFT */) {
+      x *= -1;
+    }
+    changeLayerSize(layer, x, y);
+    modules.core.view.redraw();
+  };
+  const changeLayerSize = (layer, x, y) => {
+    if (layer.area) {
+      if (!isNaN(layer.area.size.w)) layer.area.size.w += x;
+      if (!isNaN(layer.area.size.h)) layer.area.size.h += y;
+    }
+    if (layer.start) {
+      if (!isNaN(layer.size.w)) layer.size.w += x;
+      if (!isNaN(layer.size.h)) layer.size.h += y;
+    }
+    const original = modules.core.clone.getOriginal(layer);
+    if (modules.workspace) {
+      const workspace = modules.workspace;
+      if (!isNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area.size.w);
+      if (!isNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area.size.h, "y");
+      return;
+    }
+    const area = layer.area?.size ?? layer.size;
+    if (!isNaN(original.size.w)) original.size.w = area.w + x;
+    if (!isNaN(original.size.h)) original.size.h = area.h + y;
   };
   const canvasCursorTypeChange = (e) => {
     const { target } = e.detail;
+    if (mode !== 8 /* NONE */) {
+      e.preventDefault();
+      if (target.isDown) {
+        return;
+      }
+    }
     const layer = target.hover.layer;
     if (layer?.type === selectionType) {
-      const cursor = determinateCursorType(layer, target);
-      ;
-      canvas.style.cursor = cursor;
+      canvas.style.cursor = determinateCursorType(layer, target);
+    } else {
+      resetMode();
     }
+  };
+  const resetCanvasCursor = () => {
+    canvas.style.cursor = "default";
   };
   const revertCursorToDefault = (e) => {
-    const { from } = e.detail;
+    const { from, target: { isDown } } = e.detail;
+    if (isDown && mode !== 8 /* NONE */) {
+      return;
+    }
+    resetMode();
     if (from?.type === selectionType) {
-      canvas.style.cursor = "default";
+      resetCanvasCursor();
     }
   };
-  herald.register("antetype.cursor.on.move" /* MOVE */, canvasCursorTypeChange);
+  const handleDown = (e) => {
+    if (mode === 8 /* NONE */) {
+      disableResize = true;
+      return;
+    }
+    e.preventDefault();
+  };
+  const handleUpAfterResize = (e) => {
+    disableResize = false;
+    const { target } = e.detail;
+    const layer = target.hover.layer;
+    if (mode !== 8 /* NONE */) {
+      e.preventDefault();
+    }
+    resetMode();
+    if (layer?.type === selectionType) {
+      canvas.style.cursor = determinateCursorType(layer, target);
+    } else {
+      resetCanvasCursor();
+    }
+  };
+  herald.register("antetype.cursor.on.move" /* MOVE */, {
+    method: handleMove,
+    priority: -10
+  });
   herald.register("antetype.cursor.on.slip" /* SLIP */, revertCursorToDefault);
+  herald.register("antetype.cursor.on.down" /* DOWN */, {
+    method: handleDown,
+    priority: -10
+  });
+  herald.register("antetype.cursor.on.up" /* UP */, {
+    method: handleUpAfterResize,
+    priority: -10
+  });
 }
 
 // src/module.tsx
@@ -483,7 +621,7 @@ function Cursor(params) {
   const ctx = canvas.getContext("2d");
   const { drawSelection } = useDraw(ctx);
   const { selected, showSelected, isSelected } = useSelection(params);
-  const { onDown, onUp, onMove } = useDetect(params);
+  const { onDown, onUp, onMove } = useDetect(params, selected);
   useResize(params);
   canvas.addEventListener("mousedown", onDown, false);
   canvas.addEventListener("mouseup", onUp, false);
