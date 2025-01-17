@@ -6,22 +6,30 @@ import type { ICore, DrawEvent, IBaseDef } from "@boardmeister/antetype-core"
 import type Cursor from "@src/module";
 import { Event as AntetypeEvent } from "@boardmeister/antetype"
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
+import { IIterableWeakMap } from "@src/IterableWeakMap";
 
 export interface IRequiredModules extends Modules {
   core: ICore;
 }
 
-export interface SelectEvent {
+export interface PositionEvent {
   x: number;
   y: number;
 }
 
 export enum Event {
-  SELECT = 'antetype.cursor.select',
+  POSITION = 'antetype.cursor.position',
+  DOWN = 'antetype.cursor.on.down',
+  UP = 'antetype.cursor.on.up',
+  MOVE = 'antetype.cursor.on.move',
+  SLIP = 'antetype.cursor.on.slip',
 }
 
 export interface ICursor {
-  drawSelection: (layer: IBaseDef) => void
+  selected: IIterableWeakMap<IBaseDef, true>;
+  showSelected: () => void;
+  isSelected: (needle: IBaseDef) => IBaseDef|false;
+  drawSelection: (layer: IBaseDef) => void,
 }
 
 export interface ICursorParams {
@@ -59,10 +67,11 @@ export class AntetypeCursor {
       modules: modules as IRequiredModules,
       injected: this.#injected!
     });
-    this.#instance;
   }
 
-  async draw(event: CustomEvent<DrawEvent>): Promise<void> {
+  // @TODO there is not unregister method to remove all subscriptions
+
+  draw(event: CustomEvent<DrawEvent>): void {
     if (!this.#instance) {
       return;
     }
@@ -73,7 +82,7 @@ export class AntetypeCursor {
 
     const el = typeToAction[element.type]
     if (typeof el == 'function') {
-      await el(element);
+      el(element);
     }
   }
 

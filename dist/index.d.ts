@@ -238,17 +238,35 @@ interface ICore {
 	};
 }
 type Layout = (IBaseDef | IParentDef)[];
+interface IIterableWeakMap<T extends object, P> {
+	get: (key: T) => P | undefined;
+	set: (key: T, value: P) => IIterableWeakMap<T, P>;
+	delete: (key: T) => boolean;
+	has: (key: T) => boolean;
+	keys: () => T[];
+	values: () => P[];
+	empty: () => boolean;
+	clone: () => IIterableWeakMap<T, P>;
+	[Symbol.toStringTag]: string;
+}
 export interface IRequiredModules extends Modules {
 	core: ICore;
 }
-export interface SelectEvent {
+export interface PositionEvent {
 	x: number;
 	y: number;
 }
 declare enum Event$1 {
-	SELECT = "antetype.cursor.select"
+	POSITION = "antetype.cursor.position",
+	DOWN = "antetype.cursor.on.down",
+	UP = "antetype.cursor.on.up",
+	MOVE = "antetype.cursor.on.move",
+	SLIP = "antetype.cursor.on.slip"
 }
 export interface ICursor {
+	selected: IIterableWeakMap<IBaseDef, true>;
+	showSelected: () => void;
+	isSelected: (needle: IBaseDef) => IBaseDef | false;
 	drawSelection: (layer: IBaseDef) => void;
 }
 export interface ICursorParams {
@@ -265,7 +283,7 @@ export declare class AntetypeCursor {
 	static inject: Record<string, string>;
 	inject(injections: IInjected): void;
 	register(event: CustomEvent<ModulesEvent>): Promise<void>;
-	draw(event: CustomEvent<DrawEvent>): Promise<void>;
+	draw(event: CustomEvent<DrawEvent>): void;
 	static subscriptions: Subscriptions;
 }
 declare const EnAntetypeCursor: IInjectable & ISubscriber;

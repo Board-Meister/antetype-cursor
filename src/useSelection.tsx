@@ -1,30 +1,16 @@
-import { Event, ICursorParams, SelectEvent } from "@src/index";
-import type { Layout, IBaseDef, IStart, ISize } from "@boardmeister/antetype-core"
+import { Event, ICursorParams } from "@src/index";
+import type { IBaseDef } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
 import { ISelectionDef, selectionType } from "@src/module";
-
+import { getSizeAndStart } from "@src/shared";
+import { MoveEvent, UpEvent } from "@src/useDetect";
 
 export interface ISelection {
-  select: (e: MouseEvent) => Promise<void>;
-  selectionMouseUp: () => void;
-  startSelectionMove: (e: MouseEvent) => void;
+  selected: IIterableWeakMap<IBaseDef, true>;
+  showSelected: () => void;
   isSelected: (needle: IBaseDef) => IBaseDef|false
 }
-
-export interface IEvent {
-  shiftKey: boolean;
-  ctrlKey: boolean;
-  x: number;
-  y: number;
-  layers: Layout;
-}
-
-export interface IState {
-  seeThroughStackMap: IIterableWeakMap<IBaseDef, true>,
-  selected: IIterableWeakMap<IBaseDef, true>,
-}
-
 
 export default function useSelection(
   {
@@ -34,68 +20,10 @@ export default function useSelection(
 ): ISelection {
   let selected = IterableWeakMap<IBaseDef, true>();
   let shown: ISelectionDef[] = [];
-  // let state: IState|null = null;
+  let canMove = false;
+  let skipUp = false;
   let seeThroughStackMap = IterableWeakMap<IBaseDef, true>();
-  const eventState: IEvent = {
-    x: 0,
-    y: 0,
-    shiftKey: false,
-    ctrlKey: false,
-    layers: [],
-  }
   const core = modules.core;
-  const getSizeAndStart = (layer: IBaseDef): { size: ISize, start: IStart} => {
-    const size = layer.area?.size ?? layer.size;
-    const start = layer.area?.start ?? layer.start;
-
-    return {
-      size,
-      start,
-    }
-  }
-
-  const getAllClickedLayers = (
-    layout: Layout,
-    { x, y }: IEvent,
-  ): Layout => {
-    const clicked = [];
-    for(let i = layout.length - 1; i >= 0; i--) {
-      const layer = layout[i];
-      if (layer.type === selectionType) {
-        continue;
-      }
-
-      const { size, start } = getSizeAndStart(layer);
-      if (!size || !layer) {
-        continue;
-      }
-
-      const isClicked = x >= start.x && x <= size.w + start.x && y >= start.y && y <= size.h + start.y;
-      if (!isClicked) {
-        continue;
-      }
-
-      clicked.push(layer);
-    }
-
-    return clicked;
-  }
-
-  const select = async (e: MouseEvent): Promise<void> => {
-    let { layerX: x, layerY: y } = e;
-    const { shiftKey, ctrlKey } = e;
-    const layout = core.meta.document.layout;
-    const event = new CustomEvent<SelectEvent>(Event.SELECT, { detail: { x, y } });
-    await herald.dispatch(event);
-    ({ x,y } = event.detail);
-    eventState.x = x;
-    eventState.y = y;
-    eventState.shiftKey = shiftKey;
-    eventState.ctrlKey = ctrlKey;
-
-    const layers = getAllClickedLayers(layout, eventState);
-    eventState.layers = layers;
-  }
 
   const resetSelected = (): void => {
     // @TODO add event when selection was cleared
@@ -126,19 +54,25 @@ export default function useSelection(
     return false;
   }
 
-  const startSelectionMove = (e: MouseEvent): void => {
-    if (0 === eventState.layers.length) {
-      if (!e.shiftKey && !e.ctrlKey) {
+  const startSelectionMove = (e: CustomEvent<MoveEvent>): void => {
+    if (!canMove) {
+      return;
+    }
+
+    skipUp = true;
+    const { target: { down }, origin: { movementX, movementY }, } = e.detail;
+    if (0 === down.layers.length) {
+      if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
         showSelected();
       }
       return;
     }
 
-    const newSelectedLayer = eventState.layers[0];
-    const selectedLayer = isAnySelected(eventState.layers);
+    const newSelectedLayer = down.layers[0];
+    const selectedLayer = isAnySelected(down.layers);
     if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
-      if (!eventState.shiftKey && !eventState.ctrlKey) {
+      if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
       }
 
@@ -151,10 +85,10 @@ export default function useSelection(
       // @TODO add event when layer was moved
       if (layer.area) {
         if (layer.start) {
-          setNewPositionOnOriginal(layer, e.movementX, e.movementY);
+          setNewPositionOnOriginal(layer, movementX, movementY);
         }
-        layer.area.start.x += e.movementX;
-        layer.area.start.y += e.movementY;
+        layer.area.start.x += movementX;
+        layer.area.start.y += movementY;
       }
     });
 
@@ -180,15 +114,21 @@ export default function useSelection(
     original.start.y = area.y + y;
   }
 
-  const selectionMouseUp = (): void => {
-    const { shiftKey, ctrlKey } = eventState;
+  const selectionMouseUp = (event: CustomEvent<UpEvent>): void => {
+    canMove = false;
+    if (skipUp) {
+      skipUp = false;
+      return;
+    }
+    const { target: { down } }  = event.detail;
+    const { shiftKey, ctrlKey } = down;
     if (!shiftKey && !ctrlKey) {
       selected = IterableWeakMap();
     }
 
     let isFirst = true;
     let wasSelected = false;
-    for (const layer of eventState.layers) {
+    for (const layer of down.layers) {
       if (selected.has(layer) && ctrlKey) {
         selected.delete(layer);
         break;
@@ -212,15 +152,6 @@ export default function useSelection(
     // @TODO add event selected has ended
 
     showSelected();
-    clearEventState();
-  }
-
-  const clearEventState = (): void => {
-    eventState.x = 0;
-    eventState.y = 0;
-    eventState.shiftKey = false;
-    eventState.ctrlKey = false;
-    eventState.layers = [];
   }
 
   const showSelected = (): void => {
@@ -247,10 +178,17 @@ export default function useSelection(
     // @TODO event when selection is visible
   }
 
-  return {
-    select,
-    selectionMouseUp,
-    startSelectionMove,
-    isSelected,
+  const enableMove = (): void => {
+    canMove = true;
   }
+
+  herald.register(Event.DOWN, enableMove);
+  herald.register(Event.UP, selectionMouseUp);
+  herald.register(Event.MOVE, startSelectionMove);
+
+  return {
+    selected,
+    isSelected,
+    showSelected,
+  };
 }

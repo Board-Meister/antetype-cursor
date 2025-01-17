@@ -1,6 +1,9 @@
 import { ICursor, ICursorParams } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
 import useSelection from "@src/useSelection";
+import useDetect from "@src/useDetect";
+import useDraw from "@src/useDraw";
+import useResize from "@src/useResize";
 
 export const selectionType = 'selection';
 
@@ -19,47 +22,22 @@ export default function Cursor(
     throw new Error('[Antetype Cursor] Canvas is empty!')
   }
   const ctx = canvas.getContext('2d')!;
-  const { select, selectionMouseUp, startSelectionMove } = useSelection(params)
 
-  const mouseDown = (e: MouseEvent): void => {
-    void select(e);
-    canvas.addEventListener('mousemove', mouseMove, false)
-    canvas.addEventListener('mouseup', mouseUp, false)
-  }
+  const { drawSelection } = useDraw(ctx);
+  const { selected, showSelected, isSelected } = useSelection(params);
+  const { onDown, onUp, onMove } = useDetect(params);
+  useResize(params);
 
-  const mouseUp = (e: MouseEvent): void => {
-    e;
-    selectionMouseUp();
-    canvas.removeEventListener('mousemove', mouseMove, false)
-    canvas.removeEventListener('mouseup', mouseUp, false)
-  }
+  canvas.addEventListener('mousedown', onDown, false);
+  canvas.addEventListener('mouseup', onUp, false);
+  canvas.addEventListener('mousemove', onMove, false);
 
-  const mouseUpRemoveMove = (): void => {
-    canvas.removeEventListener('mousemove', mouseMove, false)
-    canvas.removeEventListener('mouseup', mouseUpRemoveMove, false)
-  }
-
-  const mouseMove = (e: MouseEvent): void => {
-    startSelectionMove(e);
-    canvas.removeEventListener('mouseup', mouseUp, false)
-    canvas.addEventListener('mouseup', mouseUpRemoveMove, false)
-  }
-
-  canvas.addEventListener('mousedown', mouseDown, false)
-
-  const drawSelection = ({ start: { x, y }, size: { w, h } }: IBaseDef): void => {
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x, y + h);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  }
+  // @TODO add deconstruct/unregister module so we can remove those events and herald registrations
 
   return {
     drawSelection,
+    selected,
+    showSelected,
+    isSelected
   };
 }

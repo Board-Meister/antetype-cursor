@@ -22,27 +22,27 @@ var s = class {
   inject(e) {
     this.#t = e;
   }
-  async #n(e, o) {
+  async #n(e, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: o, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
     }
     return this.#e;
   }
   async register(e) {
-    let { modules: o, canvas: r } = e.detail;
-    o.core = await this.#n(o, r);
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
   }
   async init(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: o, settings: r } = e.detail;
+    let { base: n, settings: r } = e.detail;
     for (let a in r) this.#e.setting.set(a, r[a]);
-    let n = this.#e.meta.document;
-    n.base = o;
+    let o = this.#e.meta.document;
+    o.base = n;
     let l = [];
     return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
       l.push(this.#e.font.load(a));
-    }), await Promise.all(l), n.layout = await this.#e.view.recalculate(n, n.base), await this.#e.view.redraw(n.layout), console.log(n), n;
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
   }
   async cloneDefinitions(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
@@ -53,7 +53,11 @@ var s = class {
 
 // src/index.tsx
 var Event2 = /* @__PURE__ */ ((Event3) => {
-  Event3["SELECT"] = "antetype.cursor.select";
+  Event3["POSITION"] = "antetype.cursor.position";
+  Event3["DOWN"] = "antetype.cursor.on.down";
+  Event3["UP"] = "antetype.cursor.on.up";
+  Event3["MOVE"] = "antetype.cursor.on.move";
+  Event3["SLIP"] = "antetype.cursor.on.slip";
   return Event3;
 })(Event2 || {});
 var AntetypeCursor = class {
@@ -78,9 +82,9 @@ var AntetypeCursor = class {
       modules,
       injected: this.#injected
     });
-    this.#instance;
   }
-  async draw(event) {
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
     if (!this.#instance) {
       return;
     }
@@ -90,7 +94,7 @@ var AntetypeCursor = class {
     };
     const el = typeToAction[element.type];
     if (typeof el == "function") {
-      await el(element);
+      el(element);
     }
   }
   static subscriptions = {

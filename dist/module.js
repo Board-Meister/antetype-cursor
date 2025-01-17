@@ -22,27 +22,27 @@ var s = class {
   inject(e) {
     this.#t = e;
   }
-  async #n(e, o) {
+  async #n(e, n) {
     if (!this.#e) {
       let r = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: o, modules: e, injected: this.#t });
+      this.#r = (await import(r)).default, this.#e = this.#r({ canvas: n, modules: e, injected: this.#t });
     }
     return this.#e;
   }
   async register(e) {
-    let { modules: o, canvas: r } = e.detail;
-    o.core = await this.#n(o, r);
+    let { modules: n, canvas: r } = e.detail;
+    n.core = await this.#n(n, r);
   }
   async init(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: o, settings: r } = e.detail;
+    let { base: n, settings: r } = e.detail;
     for (let a in r) this.#e.setting.set(a, r[a]);
-    let n = this.#e.meta.document;
-    n.base = o;
+    let o = this.#e.meta.document;
+    o.base = n;
     let l = [];
     return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
       l.push(this.#e.font.load(a));
-    }), await Promise.all(l), n.layout = await this.#e.view.recalculate(n, n.base), await this.#e.view.redraw(n.layout), console.log(n), n;
+    }), await Promise.all(l), o.layout = await this.#e.view.recalculate(o, o.base), await this.#e.view.redraw(o.layout), o;
   }
   async cloneDefinitions(e) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
@@ -74,9 +74,9 @@ var AntetypeCursor = class {
       modules,
       injected: this.#injected
     });
-    this.#instance;
   }
-  async draw(event) {
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
     if (!this.#instance) {
       return;
     }
@@ -86,7 +86,7 @@ var AntetypeCursor = class {
     };
     const el = typeToAction[element.type];
     if (typeof el == "function") {
-      await el(element);
+      el(element);
     }
   }
   static subscriptions = {
@@ -137,6 +137,53 @@ function IterableWeakMap() {
   return Object.freeze(_);
 }
 
+// src/shared.tsx
+var getSizeAndStart = (layer) => {
+  const size = layer.area?.size ?? layer.size;
+  const start = layer.area?.start ?? layer.start;
+  return {
+    size,
+    start
+  };
+};
+var isWithinLayer = (oX, oY, { x, y }, { w, h }) => oX >= x && oX <= w + x && oY >= y && oY <= h + y;
+var getLayerByPosition = (layout, x, y, skipSelection = true) => {
+  for (let i2 = layout.length - 1; i2 >= 0; i2--) {
+    const layer = layout[i2];
+    if (skipSelection && layer.type === selectionType) {
+      continue;
+    }
+    const { size = null, start = null } = getSizeAndStart(layer);
+    if (!size || !start) {
+      continue;
+    }
+    if (!isWithinLayer(x, y, start, size)) {
+      continue;
+    }
+    return layer;
+  }
+  return null;
+};
+var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
+  const clicked = [];
+  for (let i2 = layout.length - 1; i2 >= 0; i2--) {
+    const layer = layout[i2];
+    if (skipSelection && layer.type === selectionType) {
+      continue;
+    }
+    const { size, start } = getSizeAndStart(layer);
+    if (!size || !layer) {
+      continue;
+    }
+    const isClicked = x >= start.x && x <= size.w + start.x && y >= start.y && y <= size.h + start.y;
+    if (!isClicked) {
+      continue;
+    }
+    clicked.push(layer);
+  }
+  return clicked;
+};
+
 // src/useSelection.tsx
 function useSelection({
   modules,
@@ -144,56 +191,10 @@ function useSelection({
 }) {
   let selected = IterableWeakMap();
   let shown = [];
+  let canMove = false;
+  let skipUp = false;
   let seeThroughStackMap = IterableWeakMap();
-  const eventState = {
-    x: 0,
-    y: 0,
-    shiftKey: false,
-    ctrlKey: false,
-    layers: []
-  };
   const core = modules.core;
-  const getSizeAndStart = (layer) => {
-    const size = layer.area?.size ?? layer.size;
-    const start = layer.area?.start ?? layer.start;
-    return {
-      size,
-      start
-    };
-  };
-  const getAllClickedLayers = (layout, { x, y }) => {
-    const clicked = [];
-    for (let i2 = layout.length - 1; i2 >= 0; i2--) {
-      const layer = layout[i2];
-      if (layer.type === selectionType) {
-        continue;
-      }
-      const { size, start } = getSizeAndStart(layer);
-      if (!size || !layer) {
-        continue;
-      }
-      const isClicked = x >= start.x && x <= size.w + start.x && y >= start.y && y <= size.h + start.y;
-      if (!isClicked) {
-        continue;
-      }
-      clicked.push(layer);
-    }
-    return clicked;
-  };
-  const select = async (e) => {
-    let { layerX: x, layerY: y } = e;
-    const { shiftKey, ctrlKey } = e;
-    const layout = core.meta.document.layout;
-    const event = new CustomEvent("antetype.cursor.select" /* SELECT */, { detail: { x, y } });
-    await herald.dispatch(event);
-    ({ x, y } = event.detail);
-    eventState.x = x;
-    eventState.y = y;
-    eventState.shiftKey = shiftKey;
-    eventState.ctrlKey = ctrlKey;
-    const layers = getAllClickedLayers(layout, eventState);
-    eventState.layers = layers;
-  };
   const resetSelected = () => {
     selected = IterableWeakMap();
   };
@@ -217,17 +218,22 @@ function useSelection({
     return false;
   };
   const startSelectionMove = (e) => {
-    if (0 === eventState.layers.length) {
-      if (!e.shiftKey && !e.ctrlKey) {
+    if (!canMove) {
+      return;
+    }
+    skipUp = true;
+    const { target: { down }, origin: { movementX, movementY } } = e.detail;
+    if (0 === down.layers.length) {
+      if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
         showSelected();
       }
       return;
     }
-    const newSelectedLayer = eventState.layers[0];
-    const selectedLayer = isAnySelected(eventState.layers);
+    const newSelectedLayer = down.layers[0];
+    const selectedLayer = isAnySelected(down.layers);
     if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
-      if (!eventState.shiftKey && !eventState.ctrlKey) {
+      if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
       }
       selected.set(newSelectedLayer, true);
@@ -237,10 +243,10 @@ function useSelection({
     selected.keys().forEach((layer) => {
       if (layer.area) {
         if (layer.start) {
-          setNewPositionOnOriginal(layer, e.movementX, e.movementY);
+          setNewPositionOnOriginal(layer, movementX, movementY);
         }
-        layer.area.start.x += e.movementX;
-        layer.area.start.y += e.movementY;
+        layer.area.start.x += movementX;
+        layer.area.start.y += movementY;
       }
     });
     showSelected();
@@ -262,14 +268,20 @@ function useSelection({
     original.start.x = area.x + x;
     original.start.y = area.y + y;
   };
-  const selectionMouseUp = () => {
-    const { shiftKey, ctrlKey } = eventState;
+  const selectionMouseUp = (event) => {
+    canMove = false;
+    if (skipUp) {
+      skipUp = false;
+      return;
+    }
+    const { target: { down } } = event.detail;
+    const { shiftKey, ctrlKey } = down;
     if (!shiftKey && !ctrlKey) {
       selected = IterableWeakMap();
     }
     let isFirst = true;
     let wasSelected = false;
-    for (const layer of eventState.layers) {
+    for (const layer of down.layers) {
       if (selected.has(layer) && ctrlKey) {
         selected.delete(layer);
         break;
@@ -289,14 +301,6 @@ function useSelection({
       seeThroughStackMap = IterableWeakMap();
     }
     showSelected();
-    clearEventState();
-  };
-  const clearEventState = () => {
-    eventState.x = 0;
-    eventState.y = 0;
-    eventState.shiftKey = false;
-    eventState.ctrlKey = false;
-    eventState.layers = [];
   };
   const showSelected = () => {
     for (const layer of shown) {
@@ -318,12 +322,155 @@ function useSelection({
     }
     core.view.redraw();
   };
-  return {
-    select,
-    selectionMouseUp,
-    startSelectionMove,
-    isSelected
+  const enableMove = () => {
+    canMove = true;
   };
+  herald.register("antetype.cursor.on.down" /* DOWN */, enableMove);
+  herald.register("antetype.cursor.on.up" /* UP */, selectionMouseUp);
+  herald.register("antetype.cursor.on.move" /* MOVE */, startSelectionMove);
+  return {
+    selected,
+    isSelected,
+    showSelected
+  };
+}
+
+// src/useDetect.tsx
+function useDetect({
+  injected: { herald },
+  modules: { core }
+}) {
+  const eventState = {
+    down: {
+      layers: [],
+      x: 0,
+      y: 0,
+      shiftKey: false,
+      ctrlKey: false
+    },
+    hover: {
+      layer: null,
+      x: 0,
+      y: 0
+    }
+  };
+  const calcPosition = async (x, y) => {
+    const event = new CustomEvent("antetype.cursor.position" /* POSITION */, { detail: { x, y } });
+    await herald.dispatch(event);
+    return event.detail;
+  };
+  const onDown = async (e) => {
+    let { layerX: x, layerY: y } = e;
+    const { shiftKey, ctrlKey } = e;
+    const layout = core.meta.document.layout;
+    ({ x, y } = await calcPosition(x, y));
+    eventState.down.x = x;
+    eventState.down.y = y;
+    eventState.down.shiftKey = shiftKey;
+    eventState.down.ctrlKey = ctrlKey;
+    eventState.down.layers = getAllClickedLayers(layout, x, y);
+    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, { detail: {
+      origin: e,
+      target: eventState
+    } }));
+  };
+  const onUp = async (e) => {
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, { detail: { origin: e, target: eventState } }));
+    clearEventStateDown();
+    await onMove(e);
+  };
+  const onMove = async (e) => {
+    const layout = core.meta.document.layout;
+    let { layerX: x, layerY: y } = e;
+    ({ x, y } = await calcPosition(x, y));
+    const newLayer = getLayerByPosition(layout, x, y, false);
+    eventState.hover.x = x;
+    eventState.hover.y = y;
+    if (newLayer !== eventState.hover.layer) {
+      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, { detail: {
+        origin: e,
+        target: eventState,
+        from: eventState.hover.layer,
+        to: newLayer
+      } }));
+    }
+    eventState.hover.layer = newLayer;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, { detail: { origin: e, target: eventState } }));
+  };
+  const clearEventStateDown = () => {
+    eventState.down.x = 0;
+    eventState.down.y = 0;
+    eventState.down.shiftKey = false;
+    eventState.down.ctrlKey = false;
+    eventState.down.layers = [];
+  };
+  return {
+    onDown,
+    onUp,
+    onMove
+  };
+}
+
+// src/useDraw.tsx
+function useDraw(ctx) {
+  const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+    ctx.strokeStyle = "#1e272e";
+    ctx.stroke();
+    ctx.restore();
+  };
+  return {
+    drawSelection
+  };
+}
+
+// src/useResize.tsx
+function useResize({
+  injected: { herald },
+  canvas
+}) {
+  const determinateCursorType = (layer, target) => {
+    const { start: { x: sX, y: sY }, size: { h, w } } = layer;
+    const { x, y } = target.hover;
+    const bufferTop = 5, bufferBottom = 15;
+    const top = y <= sY + bufferTop && y >= sY - bufferBottom, right = x <= sX + bufferBottom + w && x >= sX - bufferTop + w, bottom = y <= sY + bufferBottom + h && y >= sY - bufferTop + h, left = x <= sX + bufferTop && x >= sX - bufferBottom;
+    if (top && left || bottom && right) {
+      return "nwse-resize";
+    }
+    if (top && right || bottom && left) {
+      return "nesw-resize";
+    }
+    if (top || bottom) {
+      return "ns-resize";
+    }
+    if (left || right) {
+      return "ew-resize";
+    }
+    return "pointer";
+  };
+  const canvasCursorTypeChange = (e) => {
+    const { target } = e.detail;
+    const layer = target.hover.layer;
+    if (layer?.type === selectionType) {
+      const cursor = determinateCursorType(layer, target);
+      ;
+      canvas.style.cursor = cursor;
+    }
+  };
+  const revertCursorToDefault = (e) => {
+    const { from } = e.detail;
+    if (from?.type === selectionType) {
+      canvas.style.cursor = "default";
+    }
+  };
+  herald.register("antetype.cursor.on.move" /* MOVE */, canvasCursorTypeChange);
+  herald.register("antetype.cursor.on.slip" /* SLIP */, revertCursorToDefault);
 }
 
 // src/module.tsx
@@ -334,41 +481,18 @@ function Cursor(params) {
     throw new Error("[Antetype Cursor] Canvas is empty!");
   }
   const ctx = canvas.getContext("2d");
-  const { select, selectionMouseUp, startSelectionMove } = useSelection(params);
-  const mouseDown = (e) => {
-    void select(e);
-    canvas.addEventListener("mousemove", mouseMove, false);
-    canvas.addEventListener("mouseup", mouseUp, false);
-  };
-  const mouseUp = (e) => {
-    e;
-    selectionMouseUp();
-    canvas.removeEventListener("mousemove", mouseMove, false);
-    canvas.removeEventListener("mouseup", mouseUp, false);
-  };
-  const mouseUpRemoveMove = () => {
-    canvas.removeEventListener("mousemove", mouseMove, false);
-    canvas.removeEventListener("mouseup", mouseUpRemoveMove, false);
-  };
-  const mouseMove = (e) => {
-    startSelectionMove(e);
-    canvas.removeEventListener("mouseup", mouseUp, false);
-    canvas.addEventListener("mouseup", mouseUpRemoveMove, false);
-  };
-  canvas.addEventListener("mousedown", mouseDown, false);
-  const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + w, y);
-    ctx.lineTo(x + w, y + h);
-    ctx.lineTo(x, y + h);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-  };
+  const { drawSelection } = useDraw(ctx);
+  const { selected, showSelected, isSelected } = useSelection(params);
+  const { onDown, onUp, onMove } = useDetect(params);
+  useResize(params);
+  canvas.addEventListener("mousedown", onDown, false);
+  canvas.addEventListener("mouseup", onUp, false);
+  canvas.addEventListener("mousemove", onMove, false);
   return {
-    drawSelection
+    drawSelection,
+    selected,
+    showSelected,
+    isSelected
   };
 }
 export {
