@@ -3,7 +3,7 @@ import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { Event, ICursorParams } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
-import { setNewPositionOnOriginal } from "@src/shared";
+import { isEqualNaN, setNewPositionOnOriginal } from "@src/shared";
 
 enum ResizeMode {
   TOP,
@@ -111,34 +111,35 @@ export default function useResize(
       x *= -1;
     }
 
-    changeLayerSize(layer, x, y)
-    modules.core.view.redraw();
+    void changeLayerSize(layer, x, y)
   }
 
-  const changeLayerSize = (layer: IBaseDef, x: number, y: number): void => {
-
+  const changeLayerSize = async (layer: IBaseDef, x: number, y: number): Promise<void> => {
+    if (!layer.size) {
+      return;
+    }
     // @TODO similar case like in src/shared.tsx:90
     if (layer.area) {
-      if (!isNaN(layer.area.size.w)) layer.area.size.w += x;
-      if (!isNaN(layer.area.size.h)) layer.area.size.h += y;
+      if (!isEqualNaN(layer.area.size.w)) layer.area.size.w += x;
+      if (!isEqualNaN(layer.area.size.h)) layer.area.size.h += y;
     }
 
-    if (layer.start) {
-      if (!isNaN(layer.size.w)) layer.size.w += x;
-      if (!isNaN(layer.size.h)) layer.size.h += y;
-    }
+    if (!isEqualNaN(layer.size.w)) layer.size.w += x;
+    if (!isEqualNaN(layer.size.h)) layer.size.h += y;
 
     const original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {
       const workspace = modules.workspace as IWorkspace;
-      if (!isNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area!.size.w) as any;
-      if (!isNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
-      return;
+      if (!isEqualNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area!.size.w) as any;
+      if (!isEqualNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
+    } else {
+      const area = layer.area?.size ?? layer.size;
+      if (!isEqualNaN(original.size?.w)) original.size.w = area.w + x;
+      if (!isEqualNaN(original.size?.h)) original.size.h = area.h + y;
     }
 
-    const area = layer.area?.size ?? layer.size;
-    if (!isNaN(original.size.w)) original.size.w = area.w + x;
-    if (!isNaN(original.size.h)) original.size.h = area.h + y;
+    await modules.core.manage.resize(original, layer, original.size);
+    modules.core.view.redraw();
   }
 
   const canvasCursorTypeChange = (e: CustomEvent<MoveEvent>): void => {

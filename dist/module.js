@@ -183,28 +183,29 @@ var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
   }
   return clicked;
 };
+var isEqualNaN = (value) => typeof value == "number" && isNaN(value);
 var setNewPositionOnOriginal = (modules, layer, x, y) => {
   if (layer.area) {
-    if (!isNaN(layer.start.x)) layer.area.start.x += x;
-    if (!isNaN(layer.start.y)) layer.area.start.y += y;
+    if (!isEqualNaN(layer.area.start.x)) layer.area.start.x += x;
+    if (!isEqualNaN(layer.area.start.y)) layer.area.start.y += y;
   }
   if (layer.start) {
-    if (!isNaN(layer.start.x)) layer.start.x += x;
-    if (!isNaN(layer.start.y)) layer.start.y += y;
+    if (!isEqualNaN(layer.start.x)) layer.start.x += x;
+    if (!isEqualNaN(layer.start.y)) layer.start.y += y;
   }
   const original = modules.core.clone.getOriginal(layer);
   if (modules.workspace) {
     const workspace = modules.workspace;
     if (original.start) {
-      if (!isNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
-      if (!isNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
+      if (!isEqualNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
+      if (!isEqualNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
     }
     return;
   }
   const area = layer.area?.start ?? layer.start;
   if (area && original.start) {
-    if (!isNaN(original.start.x)) original.start.x = area.x + x;
-    if (!isNaN(original.start.y)) original.start.y = area.y + y;
+    if (!isEqualNaN(original.start.x)) original.start.x = area.x + x;
+    if (!isEqualNaN(original.start.y)) original.start.y = area.y + y;
   }
 };
 
@@ -524,28 +525,30 @@ function useResize({
     if (mode === 3 /* LEFT */ || mode === 6 /* TOP_LEFT */ || mode === 7 /* BOTTOM_LEFT */) {
       x *= -1;
     }
-    changeLayerSize(layer, x, y);
-    modules.core.view.redraw();
+    void changeLayerSize(layer, x, y);
   };
-  const changeLayerSize = (layer, x, y) => {
+  const changeLayerSize = async (layer, x, y) => {
+    if (!layer.size) {
+      return;
+    }
     if (layer.area) {
-      if (!isNaN(layer.area.size.w)) layer.area.size.w += x;
-      if (!isNaN(layer.area.size.h)) layer.area.size.h += y;
+      if (!isEqualNaN(layer.area.size.w)) layer.area.size.w += x;
+      if (!isEqualNaN(layer.area.size.h)) layer.area.size.h += y;
     }
-    if (layer.start) {
-      if (!isNaN(layer.size.w)) layer.size.w += x;
-      if (!isNaN(layer.size.h)) layer.size.h += y;
-    }
+    if (!isEqualNaN(layer.size.w)) layer.size.w += x;
+    if (!isEqualNaN(layer.size.h)) layer.size.h += y;
     const original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {
       const workspace = modules.workspace;
-      if (!isNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area.size.w);
-      if (!isNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area.size.h, "y");
-      return;
+      if (!isEqualNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area.size.w);
+      if (!isEqualNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area.size.h, "y");
+    } else {
+      const area = layer.area?.size ?? layer.size;
+      if (!isEqualNaN(original.size?.w)) original.size.w = area.w + x;
+      if (!isEqualNaN(original.size?.h)) original.size.h = area.h + y;
     }
-    const area = layer.area?.size ?? layer.size;
-    if (!isNaN(original.size.w)) original.size.w = area.w + x;
-    if (!isNaN(original.size.h)) original.size.h = area.h + y;
+    await modules.core.manage.resize(original, layer, original.size);
+    modules.core.view.redraw();
   };
   const canvasCursorTypeChange = (e) => {
     const { target } = e.detail;

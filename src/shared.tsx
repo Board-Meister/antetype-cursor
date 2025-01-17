@@ -76,15 +76,17 @@ export const getAllClickedLayers = (
   return clicked;
 }
 
+export const isEqualNaN = (value: unknown): boolean => typeof value == 'number' && isNaN(value);
+
 export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBaseDef, x: number, y: number): void => {
   if (layer.area) {
-    if (!isNaN(layer.start.x)) layer.area.start.x += x;
-    if (!isNaN(layer.start.y)) layer.area.start.y += y;
+    if (!isEqualNaN(layer.area.start.x)) layer.area.start.x += x;
+    if (!isEqualNaN(layer.area.start.y)) layer.area.start.y += y;
   }
 
   if (layer.start) {
-    if (!isNaN(layer.start.x)) layer.start.x += x;
-    if (!isNaN(layer.start.y)) layer.start.y += y;
+    if (!isEqualNaN(layer.start.x)) layer.start.x += x;
+    if (!isEqualNaN(layer.start.y)) layer.start.y += y;
   }
 
   // @TODO probably move it to event
@@ -94,15 +96,15 @@ export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBase
   if (modules.workspace) {
     const workspace = modules.workspace as IWorkspace;
     if (original.start) {
-      if (!isNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x) as any;
-      if (!isNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
+      if (!isEqualNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x) as any;
+      if (!isEqualNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
     }
     return;
   }
 
   const area = layer.area?.start ?? layer.start;
   if (area && original.start) {
-    if (!isNaN(original.start.x)) original.start.x = area.x + x;
-    if (!isNaN(original.start.y)) original.start.y = area.y + y;
+    if (!isEqualNaN(original.start.x)) original.start.x = area.x + x;
+    if (!isEqualNaN(original.start.y)) original.start.y = area.y + y;
   }
 }
