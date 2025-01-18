@@ -35,9 +35,8 @@ export default function useSelection(
   const core = modules.core;
 
   const resetSelected = (): void => {
-    const keys = selected.keys();
-    while (keys.length > 0) {
-      selected.delete(keys[0]);
+    while (selected.empty()) {
+      selected.delete(selected.firstKey()!);
     }
     // @TODO add event when selection was cleared
   }

@@ -129,6 +129,10 @@ function IterableWeakMap() {
       }
       return true;
     },
+    first: () => arrValues[0] ?? null,
+    last: () => arrValues.slice(-1)[0] ?? null,
+    firstKey: () => arrKeys[0] ?? null,
+    lastKey: () => arrKeys.slice(-1)[0] ?? null,
     has: (key) => weakMap.has(key),
     keys: () => [...arrKeys],
     values: () => [...arrValues],
@@ -234,9 +238,8 @@ function useSelection({
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
   const resetSelected = () => {
-    const keys = selected.keys();
-    while (keys.length > 0) {
-      selected.delete(keys[0]);
+    while (selected.empty()) {
+      selected.delete(selected.firstKey());
     }
   };
   const resetSeeThroughStackMap = () => {

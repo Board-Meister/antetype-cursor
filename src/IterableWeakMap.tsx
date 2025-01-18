@@ -4,6 +4,10 @@ export interface IIterableWeakMap<T extends object, P> {
   get: (key: T) => P|undefined;
   set: (key: T, value: P) => IIterableWeakMap<T, P>;
   delete: (key: T) => boolean;
+  first: () => P|null;
+  last: () => P|null;
+  firstKey: () => T|null;
+  lastKey: () => T|null;
   has: (key: T) => boolean;
   keys: () => T[];
   values: () => P[];
@@ -53,6 +57,10 @@ export default function IterableWeakMap<T extends object, P>(): IIterableWeakMap
 
         return true;
       },
+      first: (): P|null => arrValues[0] ?? null,
+      last: (): P|null => arrValues.slice(-1)[0] ?? null,
+      firstKey: (): T|null => arrKeys[0] ?? null,
+      lastKey: (): T|null => arrKeys.slice(-1)[0] ?? null,
       has: (key: T): boolean => weakMap.has(key),
       keys: (): T[] => [...arrKeys],
       values: (): P[] => [...arrValues],

@@ -242,6 +242,10 @@ interface IIterableWeakMap<T extends object, P> {
 	get: (key: T) => P | undefined;
 	set: (key: T, value: P) => IIterableWeakMap<T, P>;
 	delete: (key: T) => boolean;
+	first: () => P | null;
+	last: () => P | null;
+	firstKey: () => T | null;
+	lastKey: () => T | null;
 	has: (key: T) => boolean;
 	keys: () => T[];
 	values: () => P[];
