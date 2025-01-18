@@ -113,18 +113,25 @@ function IterableWeakMap() {
       return _;
     },
     delete: (key) => {
-      if (!weakMap.get(key) || !objectToIndex.has(key)) {
+      if (!weakMap.has(key) && objectToIndex.has(key)) {
         return false;
       }
-      weakMap.delete(key);
-      arrKeys.splice(objectToIndex.get(key), 1);
-      arrValues.splice(objectToIndex.get(key), 1);
-      objectToIndex.delete(key);
+      if (weakMap.has(key)) {
+        weakMap.delete(key);
+      }
+      if (objectToIndex.has(key)) {
+        arrKeys.splice(objectToIndex.get(key), 1);
+        arrValues.splice(objectToIndex.get(key), 1);
+        objectToIndex.delete(key);
+        arrKeys.forEach((value, i2) => {
+          objectToIndex.set(value, i2);
+        });
+      }
       return true;
     },
     has: (key) => weakMap.has(key),
-    keys: () => arrKeys,
-    values: () => arrValues,
+    keys: () => [...arrKeys],
+    values: () => [...arrValues],
     empty: () => !!arrValues.length,
     clone: () => {
       const cloned = IterableWeakMap();
@@ -183,33 +190,39 @@ var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
   }
   return clicked;
 };
-var isEqualNaN = (value) => typeof value == "number" && isNaN(value);
+var isEditable = (value) => typeof value == "number" && isNaN(value) || typeof value == "undefined";
 var setNewPositionOnOriginal = (modules, layer, x, y) => {
   if (layer.area) {
-    if (!isEqualNaN(layer.area.start.x)) layer.area.start.x += x;
-    if (!isEqualNaN(layer.area.start.y)) layer.area.start.y += y;
+    if (!isEditable(layer.area.start.x)) layer.area.start.x += x;
+    if (!isEditable(layer.area.start.y)) layer.area.start.y += y;
   }
   if (layer.start) {
-    if (!isEqualNaN(layer.start.x)) layer.start.x += x;
-    if (!isEqualNaN(layer.start.y)) layer.start.y += y;
+    if (!isEditable(layer.start.x)) layer.start.x += x;
+    if (!isEditable(layer.start.y)) layer.start.y += y;
   }
   const original = modules.core.clone.getOriginal(layer);
   if (modules.workspace) {
     const workspace = modules.workspace;
     if (original.start) {
-      if (!isEqualNaN(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
-      if (!isEqualNaN(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
+      if (!isEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
+      if (!isEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
     }
     return;
   }
   const area = layer.area?.start ?? layer.start;
   if (area && original.start) {
-    if (!isEqualNaN(original.start.x)) original.start.x = area.x + x;
-    if (!isEqualNaN(original.start.y)) original.start.y = area.y + y;
+    if (!isEditable(original.start.x)) original.start.x = area.x + x;
+    if (!isEditable(original.start.y)) original.start.y = area.y + y;
   }
 };
 
 // src/useSelection.tsx
+function getLayerFromSelection(layer) {
+  if (layer.type === selectionType) {
+    return layer.selection.layer;
+  }
+  return layer;
+}
 function useSelection({
   modules,
   injected: { herald }
@@ -221,8 +234,9 @@ function useSelection({
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
   const resetSelected = () => {
-    for (const key of selected.keys()) {
-      selected.delete(key);
+    const keys = selected.keys();
+    while (keys.length > 0) {
+      selected.delete(keys[0]);
     }
   };
   const resetSeeThroughStackMap = () => {
@@ -462,7 +476,12 @@ function useResize({
   canvas,
   modules
 }) {
-  let mode = 8 /* NONE */, disableResize = false;
+  let mode = 8 /* NONE */, disableResize = false, resizeInProgress = false;
+  const eventSnapshot = {
+    waiting: false,
+    layout: null,
+    movement: null
+  };
   const determinateCursorType = (layer, target) => {
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
@@ -494,6 +513,14 @@ function useResize({
     if (disableResize) {
       return;
     }
+    let { target: { hover: { layer } } } = e.detail;
+    if (layer) {
+      layer = getLayerFromSelection(layer);
+      const original = modules.core.clone.getOriginal(layer);
+      if (!original?.size) {
+        return;
+      }
+    }
     canvasCursorTypeChange(e);
     resizeSelected(e);
   };
@@ -506,7 +533,16 @@ function useResize({
     let { movementY: y, movementX: x } = origin;
     if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
     if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
-    for (const layer of layers) {
+    if (resizeInProgress) {
+      eventSnapshot.waiting = true;
+      eventSnapshot.movement = { x, y };
+      eventSnapshot.layout = layers;
+      return;
+    }
+    bulkResize(layers, x, y);
+  };
+  const bulkResize = (layout, x, y) => {
+    for (const layer of layout) {
       resize(layer, x, y);
     }
   };
@@ -532,23 +568,34 @@ function useResize({
       return;
     }
     if (layer.area) {
-      if (!isEqualNaN(layer.area.size.w)) layer.area.size.w += x;
-      if (!isEqualNaN(layer.area.size.h)) layer.area.size.h += y;
+      if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
+      if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
     }
-    if (!isEqualNaN(layer.size.w)) layer.size.w += x;
-    if (!isEqualNaN(layer.size.h)) layer.size.h += y;
     const original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {
       const workspace = modules.workspace;
-      if (!isEqualNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area.size.w);
-      if (!isEqualNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area.size.h, "y");
+      if (!isEditable(original.size.w)) original.size.w = workspace.toRelative(layer.area.size.w);
+      if (!isEditable(original.size.h)) original.size.h = workspace.toRelative(layer.area.size.h, "y");
     } else {
       const area = layer.area?.size ?? layer.size;
-      if (!isEqualNaN(original.size?.w)) original.size.w = area.w + x;
-      if (!isEqualNaN(original.size?.h)) original.size.h = area.h + y;
+      if (!isEditable(original.size?.w)) original.size.w = area.w + x;
+      if (!isEditable(original.size?.h)) original.size.h = area.h + y;
     }
+    resizeInProgress = true;
     await modules.core.manage.resize(original, layer, original.size);
     modules.core.view.redraw();
+    resizeInProgress = false;
+    if (eventSnapshot.waiting) {
+      const { layout, movement } = eventSnapshot;
+      const { x: x2, y: y2 } = movement;
+      resetEventSnapshot();
+      bulkResize(layout, x2, y2);
+    }
+  };
+  const resetEventSnapshot = () => {
+    eventSnapshot.waiting = false;
+    eventSnapshot.movement = null;
+    eventSnapshot.layout = null;
   };
   const canvasCursorTypeChange = (e) => {
     const { target } = e.detail;

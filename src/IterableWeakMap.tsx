@@ -33,19 +33,29 @@ export default function IterableWeakMap<T extends object, P>(): IIterableWeakMap
         return _;
       },
       delete: (key: T): boolean => {
-        if (!weakMap.get(key) || !objectToIndex.has(key)) {
+        if (!weakMap.has(key) && objectToIndex.has(key)) {
           return false;
         }
-        weakMap.delete(key);
-        arrKeys.splice(objectToIndex.get(key)!, 1);
-        arrValues.splice(objectToIndex.get(key)!, 1);
-        objectToIndex.delete(key);
+
+        if (weakMap.has(key)) {
+          weakMap.delete(key);
+        }
+
+        if (objectToIndex.has(key)) {
+          arrKeys.splice(objectToIndex.get(key)!, 1);
+          arrValues.splice(objectToIndex.get(key)!, 1);
+          objectToIndex.delete(key);
+
+          arrKeys.forEach((value, i) => {
+            objectToIndex.set(value, i);
+          });
+        }
 
         return true;
       },
       has: (key: T): boolean => weakMap.has(key),
-      keys: (): T[] => arrKeys,
-      values: (): P[] => arrValues,
+      keys: (): T[] => [...arrKeys],
+      values: (): P[] => [...arrValues],
       empty: (): boolean => !!arrValues.length,
       clone: (): IIterableWeakMap<T, P> => {
         const cloned = IterableWeakMap<T, P>();

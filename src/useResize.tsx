@@ -1,9 +1,10 @@
-import type { IBaseDef } from "@boardmeister/antetype-core"
+import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { Event, ICursorParams } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
-import { isEqualNaN, setNewPositionOnOriginal } from "@src/shared";
+import { isEditable, setNewPositionOnOriginal } from "@src/shared";
+import { getLayerFromSelection } from "@src/useSelection";
 
 enum ResizeMode {
   TOP,
@@ -17,6 +18,17 @@ enum ResizeMode {
   NONE,
 }
 
+interface IMovement {
+  x: number;
+  y: number;
+}
+
+interface IEventSnapshot {
+  waiting: boolean;
+  layout: Layout|null;
+  movement: IMovement|null;
+}
+
 export default function useResize(
   {
     injected: { herald },
@@ -25,8 +37,14 @@ export default function useResize(
   }: ICursorParams,
 ): void {
   let mode = ResizeMode.NONE,
-    disableResize = false
+    disableResize = false,
+    resizeInProgress = false
   ;
+  const eventSnapshot: IEventSnapshot = {
+    waiting: false,
+    layout: null,
+    movement: null,
+  };
   const determinateCursorType = (layer: ISelectionDef, target: IEvent): string => {
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
@@ -72,6 +90,16 @@ export default function useResize(
     if (disableResize) {
       return;
     }
+
+    let { target: { hover: { layer } } } = e.detail;
+    if (layer) {
+      layer = getLayerFromSelection(layer);
+      const original = modules.core.clone.getOriginal(layer);
+      if (!original?.size) {
+        return;
+      }
+    }
+
     canvasCursorTypeChange(e);
     resizeSelected(e);
   }
@@ -84,11 +112,21 @@ export default function useResize(
     }
 
     let { movementY: y, movementX: x } = origin;
-
     if (mode === ResizeMode.LEFT || mode === ResizeMode.RIGHT ) y = 0;
     if (mode === ResizeMode.TOP  || mode === ResizeMode.BOTTOM) x = 0;
 
-    for (const layer of layers) {
+    if (resizeInProgress) {
+      eventSnapshot.waiting = true;
+      eventSnapshot.movement = { x, y };
+      eventSnapshot.layout = layers;
+      return;
+    }
+
+    bulkResize(layers, x, y);
+  }
+
+  const bulkResize = (layout: Layout, x: number, y: number): void => {
+    for (const layer of layout) {
       resize(layer, x, y);
     }
   }
@@ -115,31 +153,43 @@ export default function useResize(
   }
 
   const changeLayerSize = async (layer: IBaseDef, x: number, y: number): Promise<void> => {
+    // @TODO similar case like in src/shared.tsx:90
     if (!layer.size) {
       return;
     }
-    // @TODO similar case like in src/shared.tsx:90
-    if (layer.area) {
-      if (!isEqualNaN(layer.area.size.w)) layer.area.size.w += x;
-      if (!isEqualNaN(layer.area.size.h)) layer.area.size.h += y;
-    }
 
-    if (!isEqualNaN(layer.size.w)) layer.size.w += x;
-    if (!isEqualNaN(layer.size.h)) layer.size.h += y;
+    if (layer.area) {
+      if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
+      if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
+    }
 
     const original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {
       const workspace = modules.workspace as IWorkspace;
-      if (!isEqualNaN(original.size.w)) original.size.w = workspace.toRelative(layer.area!.size.w) as any;
-      if (!isEqualNaN(original.size.h)) original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
+      if (!isEditable(original.size.w)) original.size.w = workspace.toRelative(layer.area!.size.w) as any;
+      if (!isEditable(original.size.h)) original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
     } else {
       const area = layer.area?.size ?? layer.size;
-      if (!isEqualNaN(original.size?.w)) original.size.w = area.w + x;
-      if (!isEqualNaN(original.size?.h)) original.size.h = area.h + y;
+      if (!isEditable(original.size?.w)) original.size.w = area.w + x;
+      if (!isEditable(original.size?.h)) original.size.h = area.h + y;
     }
 
+    resizeInProgress = true;
     await modules.core.manage.resize(original, layer, original.size);
     modules.core.view.redraw();
+    resizeInProgress = false;
+    if (eventSnapshot.waiting) {
+      const { layout, movement } = eventSnapshot;
+      const { x, y } = movement!;
+      resetEventSnapshot();
+      bulkResize(layout!, x, y)
+    }
+  }
+
+  const resetEventSnapshot = (): void => {
+    eventSnapshot.waiting = false;
+    eventSnapshot.movement = null;
+    eventSnapshot.layout = null;
   }
 
   const canvasCursorTypeChange = (e: CustomEvent<MoveEvent>): void => {

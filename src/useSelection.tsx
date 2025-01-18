@@ -13,6 +13,14 @@ export interface ISelection {
 
 export type Selected = IIterableWeakMap<IBaseDef, true>;
 
+export function getLayerFromSelection(layer: IBaseDef): IBaseDef {
+  if (layer.type === selectionType) {
+    return (layer as ISelectionDef).selection.layer;
+  }
+
+  return layer;
+}
+
 export default function useSelection(
   {
     modules,
@@ -27,8 +35,9 @@ export default function useSelection(
   const core = modules.core;
 
   const resetSelected = (): void => {
-    for (const key of selected.keys()) {
-      selected.delete(key);
+    const keys = selected.keys();
+    while (keys.length > 0) {
+      selected.delete(keys[0]);
     }
     // @TODO add event when selection was cleared
   }
