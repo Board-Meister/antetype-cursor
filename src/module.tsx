@@ -4,6 +4,7 @@ import useSelection from "@src/useSelection";
 import useDetect from "@src/useDetect";
 import useDraw from "@src/useDraw";
 import useResize from "@src/useResize";
+import useDelete from "@src/useDelete";
 
 export const selectionType = 'selection';
 
@@ -27,6 +28,7 @@ export default function Cursor(
   const { selected, showSelected, isSelected } = useSelection(params);
   const { onDown, onUp, onMove } = useDetect(params, selected);
   useResize(params);
+  useDelete(params, selected);
 
   canvas.addEventListener('mousedown', onDown, false);
   canvas.addEventListener('mouseup', onUp, false);
