@@ -82,6 +82,7 @@ export const isEditable = (value: unknown): boolean =>
 ;
 
 export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBaseDef, x: number, y: number): void => {
+  layer = modules.core.clone.getClone(layer);
   if (layer.area) {
     if (!isEditable(layer.area.start.x)) layer.area.start.x += x;
     if (!isEditable(layer.area.start.y)) layer.area.start.y += y;

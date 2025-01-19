@@ -1,5 +1,7 @@
 import { Event, ICursorParams } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
+import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
+import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
 import { ISelectionDef, selectionType } from "@src/module";
 import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
@@ -19,6 +21,15 @@ export function getLayerFromSelection(layer: IBaseDef): IBaseDef {
   }
 
   return layer;
+}
+
+interface IMoveSaveData {
+  x: number;
+  y: number;
+  after: {
+    x: number;
+    y: number;
+  }
 }
 
 export default function useSelection(
@@ -65,10 +76,46 @@ export default function useSelection(
     return false;
   }
 
+  const saveSelectedPosition = (): void => {
+    const layers = selected.keys();
+    const state: IMementoState<IMoveSaveData>[] = [];
+    layers.forEach(layer => {
+      const original = modules.core.clone.getOriginal(layer);
+      state.push({
+        origin: 'cursor.move',
+        layer: original,
+        data: {
+          x: layer.area!.start.x,
+          y: layer.area!.start.y,
+          after: {
+            x: 0,
+            y: 0,
+          }
+        },
+        undo: (original: IBaseDef, data: IMoveSaveData) => {
+          const clone = modules.core.clone.getClone(original);
+          data.after.x = clone.area!.start.x;
+          data.after.y = clone.area!.start.y;
+          setNewPositionOnOriginal(modules, original, data.x - clone.area!.start.x, data.y - clone.area!.start.y);
+        },
+        redo: (original: IBaseDef, data: IMoveSaveData) => {
+          setNewPositionOnOriginal(modules, original, data.after.x - data.x, data.after.y - data.y);
+        },
+      });
+    });
+
+    if (state.length > 0) {
+      void herald.dispatch(new CustomEvent<SaveEvent<IMoveSaveData>>(MementoEvent.SAVE, {  detail: { state } }));
+    }
+  }
+
+  // @TODO probably should be in different useCase - useMove
   const startSelectionMove = (e: CustomEvent<MoveEvent>): void => {
     if (e.defaultPrevented || !canMove) {
       return;
     }
+
+    const isFirstMotionAfterDown = !skipUp;
 
     skipUp = true;
     const { target: { down }, origin: { movementX, movementY }, } = e.detail;
@@ -90,6 +137,10 @@ export default function useSelection(
       selected.set(newSelectedLayer, true);
     } else if (selectedLayer) {
       selected.set(selectedLayer, true);
+    }
+
+    if (isFirstMotionAfterDown) {
+      saveSelectedPosition();
     }
 
     selected.keys().forEach(layer => {

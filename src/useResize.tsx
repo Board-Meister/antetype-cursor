@@ -1,10 +1,25 @@
 import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
+import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event, ICursorParams } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
 import { isEditable, setNewPositionOnOriginal } from "@src/shared";
 import { getLayerFromSelection } from "@src/useSelection";
+import { Event as MementoEvent } from "@boardmeister/antetype-memento"
+
+interface IResizeSaveData {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  after: {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+}
 
 enum ResizeMode {
   TOP,
@@ -38,7 +53,8 @@ export default function useResize(
 ): void {
   let mode = ResizeMode.NONE,
     disableResize = false,
-    resizeInProgress = false
+    resizeInProgress = false,
+    saved = false
   ;
   const eventSnapshot: IEventSnapshot = {
     waiting: false,
@@ -122,6 +138,7 @@ export default function useResize(
       return;
     }
 
+    saveResize(layers);
     bulkResize(layers, x, y);
   }
 
@@ -152,11 +169,56 @@ export default function useResize(
     void changeLayerSize(layer, x, y)
   }
 
+  const saveResize = (layers: Layout): void => {
+    if (saved) {
+      return;
+    }
+    saved = true;
+    const state: IMementoState<IResizeSaveData>[] = [];
+    layers.forEach(layer => {
+      const original = modules.core.clone.getOriginal(layer);
+      state.push({
+        origin: 'cursor.move',
+        layer: original,
+        data: {
+          x: layer.start.x,
+          y: layer.start.y,
+          w: layer.size.w,
+          h: layer.size.h,
+          after: {
+            w: 0,
+            h: 0,
+            x: 0,
+            y: 0,
+          }
+        },
+        undo: async (original: IBaseDef, data: IResizeSaveData): Promise<void> => {
+          const clone = modules.core.clone.getClone(original);
+          data.after.x = clone.start.x;
+          data.after.y = clone.start.y;
+          setNewPositionOnOriginal(modules, original, data.x - clone.start.x, data.y - clone.start.y);
+          data.after.w = clone.size.w;
+          data.after.h = clone.size.h;
+          await changeLayerSize(original, data.w - clone.size.w, data.h - clone.size.h);
+        },
+        redo: async (original: IBaseDef, data: IResizeSaveData): Promise<void> => {
+          setNewPositionOnOriginal(modules, original, data.after.x - data.x, data.after.y - data.y);
+          await changeLayerSize(original, data.after.w - data.w, data.after.h - data.h);
+        },
+      });
+    });
+
+    if (state.length > 0) {
+      void herald.dispatch(new CustomEvent<SaveEvent<IResizeSaveData>>(MementoEvent.SAVE, { detail: { state } }));
+    }
+  }
+
   const changeLayerSize = async (layer: IBaseDef, x: number, y: number): Promise<void> => {
     // @TODO similar case like in src/shared.tsx:90
     if (!layer.size) {
       return;
     }
+    layer = modules.core.clone.getClone(layer);
 
     if (layer.area) {
       if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
@@ -234,6 +296,7 @@ export default function useResize(
   }
 
   const handleUpAfterResize = (e: CustomEvent<UpEvent>): void => {
+    saved = false;
     disableResize = false;
     const { target } = e.detail;
     const layer = target.hover.layer;

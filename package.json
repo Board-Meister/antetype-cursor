@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "typescript": "./node_modules/.bin/dts-bundle-generator --no-check --export-referenced-types false --project tsconfig.json -o dist/index.d.ts src/index.tsx",
-    "link": "npm link @boardmeister/antetype-workspace @boardmeister/antetype @boardmeister/antetype-core @boardmeister/antetype-transform @boardmeister/minstrel @boardmeister/herald @boardmeister/marshal",
+    "link": "npm link @boardmeister/antetype-memento @boardmeister/antetype-workspace @boardmeister/antetype @boardmeister/antetype-core @boardmeister/antetype-transform @boardmeister/minstrel @boardmeister/herald @boardmeister/marshal",
     "build": "node esbuild.config.mjs && npm run typescript"
   },
   "repository": {
