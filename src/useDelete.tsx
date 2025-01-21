@@ -5,7 +5,6 @@ import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
 export interface IDelete {
-
 }
 
 export interface IDeleteSaveData {
@@ -36,7 +35,7 @@ export default function useDelete(
     layers.forEach(layer => {
       const original = modules.core.clone.getOriginal(layer);
       state.push({
-        origin: 'cursor.move',
+        origin: 'cursor.delete',
         layer: original,
         data: {},
         undo: async (original: IBaseDef): Promise<void> => {

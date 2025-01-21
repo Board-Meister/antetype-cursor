@@ -143,6 +143,12 @@ interface Module$1 {
 }
 interface Modules {
 	[key: string]: Module$1 | undefined;
+	system?: {
+		structure: {
+			reloadStructure: () => Promise<void>;
+			reload: VoidFunction;
+		};
+	};
 }
 declare type UnknownRecord = Record<symbol | string, unknown>;
 interface DrawEvent {

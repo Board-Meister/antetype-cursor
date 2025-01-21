@@ -62,7 +62,7 @@ export class AntetypeCursor {
       const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
       this.#module = ((await import(module)) as { default: typeof Cursor }).default;
     }
-    this.#instance = modules.transform = this.#module({
+    this.#instance = modules.cursor = this.#module({
       canvas,
       modules: modules as IRequiredModules,
       injected: this.#injected!
