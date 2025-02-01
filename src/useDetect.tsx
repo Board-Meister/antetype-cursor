@@ -25,6 +25,7 @@ export interface IEventHover {
 
 export interface IEvent {
   isDown: boolean;
+  wasMoved: boolean;
   selected: Selected;
   down: IEventDown;
   hover: IEventHover;
@@ -53,6 +54,7 @@ export default function useDetect(
   const eventState: IEvent = {
     selected,
     isDown: false,
+    wasMoved: false,
     down: {
       layers: [],
       x: 0,
@@ -76,6 +78,7 @@ export default function useDetect(
 
   const onDown = async (e: MouseEvent): Promise<void> => {
     eventState.isDown = true;
+    eventState.wasMoved = false;
     let { layerX: x, layerY: y } = e;
     const { shiftKey, ctrlKey } = e;
     const layout = core.meta.document.layout;
@@ -106,6 +109,7 @@ export default function useDetect(
   }
 
   const onMove = async (e: MouseEvent): Promise<void> => {
+    eventState.wasMoved = true;
     const layout = core.meta.document.layout;
     let { layerX: x, layerY: y } = e;
     ({ x, y } = await calcPosition(x, y));

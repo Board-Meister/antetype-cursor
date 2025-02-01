@@ -1,5 +1,6 @@
 import { Event, ICursorParams } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
+import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
@@ -46,7 +47,7 @@ export default function useSelection(
   const core = modules.core;
 
   const resetSelected = (): void => {
-    while (selected.empty()) {
+    while (!selected.empty()) {
       selected.delete(selected.firstKey()!);
     }
     // @TODO add event when selection was cleared
@@ -57,19 +58,19 @@ export default function useSelection(
   }
 
   const isSelected = (needle: IBaseDef): IBaseDef|false => {
-    for (const layer of selected.keys()) {
-      if (needle === layer) {
-        return needle;
-      }
+    const original = core.clone.getOriginal(needle);
+    if (selected.has(original)) {
+      return original;
     }
 
     return false;
   }
 
   const isAnySelected = (needles: IBaseDef[]): IBaseDef|false => {
-    for (const layer of selected.keys()) {
-      if (needles.includes(layer)) {
-        return layer;
+    for (const needle of needles) {
+      const original = core.clone.getOriginal(needle);
+      if (selected.has(original)) {
+        return original;
       }
     }
 
@@ -79,8 +80,8 @@ export default function useSelection(
   const saveSelectedPosition = (): void => {
     const layers = selected.keys();
     const state: IMementoState<IMoveSaveData>[] = [];
-    layers.forEach(layer => {
-      const original = modules.core.clone.getOriginal(layer);
+    layers.forEach(original => {
+      const layer = modules.core.clone.getClone(original);
       state.push({
         origin: 'cursor.move',
         layer: original,
@@ -127,7 +128,7 @@ export default function useSelection(
       return;
     }
 
-    const newSelectedLayer = down.layers[0];
+    const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
     const selectedLayer = isAnySelected(down.layers);
     if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
       if (!down.shiftKey && !down.ctrlKey) {
@@ -169,18 +170,19 @@ export default function useSelection(
     let isFirst = true;
     let wasSelected = false;
     for (const layer of down.layers) {
-      if (selected.has(layer) && ctrlKey) {
-        selected.delete(layer);
+      const origin = modules.core.clone.getOriginal(layer);
+      if (selected.has(origin) && ctrlKey) {
+        selected.delete(origin);
         break;
       }
 
-      if (!seeThroughStackMap.has(layer)) {
-        selected.set(layer, true);
+      if (!seeThroughStackMap.has(origin)) {
+        selected.set(origin, true);
         wasSelected = true;
         if (isFirst) {
           resetSeeThroughStackMap();
         }
-        seeThroughStackMap.set(layer, true);
+        seeThroughStackMap.set(origin, true);
         break;
       }
       isFirst = false;
@@ -201,7 +203,7 @@ export default function useSelection(
     shown = [];
 
     for (const layer of selected.keys()) {
-      const { size, start } = getSizeAndStart(layer);
+      const { size, start } = getSizeAndStart(core.clone.getClone(layer));
       const selection = {
         type: selectionType,
         size,
@@ -225,9 +227,26 @@ export default function useSelection(
     canMove = true;
   }
 
-  herald.register(Event.DOWN, enableMove);
-  herald.register(Event.UP, selectionMouseUp);
-  herald.register(Event.MOVE, startSelectionMove);
+  const unregister = herald.batch([
+    {
+      event:Event.DOWN,
+      subscription: enableMove,
+    },
+    {
+      event:Event.UP,
+      subscription: selectionMouseUp,
+    },
+    {
+      event:Event.MOVE,
+      subscription: startSelectionMove,
+    },
+    {
+      event: CoreEvent.CLOSE,
+      subscription: {
+        method: () => { unregister() },
+      },
+    }
+  ]);
 
   return {
     selected,

@@ -92,5 +92,7 @@ export class AntetypeCursor {
   }
 }
 
-const EnAntetypeCursor: IInjectable&ISubscriber = AntetypeCursor;
+export { DownEvent, UpEvent, MoveEvent, SlipEvent, IEvent, IEventDown, IEventHover } from "@src/useDetect";
+
+const EnAntetypeCursor: IInjectable<IInjected> & ISubscriber = AntetypeCursor;
 export default EnAntetypeCursor;

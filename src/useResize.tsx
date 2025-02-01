@@ -1,4 +1,5 @@
 import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
+import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event, ICursorParams } from "@src/index";
@@ -50,6 +51,7 @@ export default function useResize(
     canvas,
     modules,
   }: ICursorParams,
+  showSelected: VoidFunction,
 ): void {
   let mode = ResizeMode.NONE,
     disableResize = false,
@@ -108,8 +110,9 @@ export default function useResize(
     }
 
     let { target: { hover: { layer } } } = e.detail;
+    // Specific cases when layers don't support `size` - like polygons
     if (layer) {
-      layer = getLayerFromSelection(layer);
+      layer = getLayerFromSelection(modules.core.clone.getClone(layer));
       const original = modules.core.clone.getOriginal(layer);
       if (!original?.size) {
         return;
@@ -148,7 +151,8 @@ export default function useResize(
     }
   }
 
-  const resize = (layer: IBaseDef, x: number, y: number): void => {
+  const resize = (original: IBaseDef, x: number, y: number): void => {
+    const layer = modules.core.clone.getClone(original);
     if (mode !== ResizeMode.BOTTOM_RIGHT && mode !== ResizeMode.RIGHT && mode !== ResizeMode.BOTTOM) {
       setNewPositionOnOriginal(
         modules,
@@ -175,8 +179,8 @@ export default function useResize(
     }
     saved = true;
     const state: IMementoState<IResizeSaveData>[] = [];
-    layers.forEach(layer => {
-      const original = modules.core.clone.getOriginal(layer);
+    layers.forEach(original => {
+      const layer = modules.core.clone.getClone(original);
       state.push({
         origin: 'cursor.move',
         layer: original,
@@ -213,31 +217,32 @@ export default function useResize(
     }
   }
 
-  const changeLayerSize = async (layer: IBaseDef, x: number, y: number): Promise<void> => {
+  const changeLayerSize = async (original: IBaseDef, x: number, y: number): Promise<void> => {
     // @TODO similar case like in src/shared.tsx:90
-    if (!layer.size) {
+    if (!original.size) {
       return;
     }
-    layer = modules.core.clone.getClone(layer);
+    const layer = modules.core.clone.getClone(original);
 
     if (layer.area) {
       if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
       if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
     }
 
-    const original = modules.core.clone.getOriginal(layer);
+    original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {
       const workspace = modules.workspace as IWorkspace;
-      if (!isEditable(original.size.w)) original.size.w = workspace.toRelative(layer.area!.size.w) as any;
-      if (!isEditable(original.size.h)) original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
+      original.size.w = workspace.toRelative(layer.area!.size.w) as any;
+      original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
     } else {
       const area = layer.area?.size ?? layer.size;
-      if (!isEditable(original.size?.w)) original.size.w = area.w + x;
-      if (!isEditable(original.size?.h)) original.size.h = area.h + y;
+      original.size.w = area.w + x;
+      original.size.h = area.h + y;
     }
 
     resizeInProgress = true;
-    await modules.core.manage.resize(original, layer, original.size);
+    await modules.core.manage.resize(original, original.size);
+    showSelected();
     modules.core.view.redraw();
     resizeInProgress = false;
     if (eventSnapshot.waiting) {
@@ -311,17 +316,39 @@ export default function useResize(
     }
   }
 
-  herald.register(Event.MOVE, {
-    method: handleMove,
-    priority: -10,
-  });
-  herald.register(Event.SLIP, revertCursorToDefault);
-  herald.register(Event.DOWN, {
-    method: handleDown,
-    priority: -10,
-  });
-  herald.register(Event.UP, {
-    method: handleUpAfterResize,
-    priority: -10,
-  });
+  const unregister = herald.batch([
+    {
+      event: Event.MOVE,
+      subscription: {
+        method: handleMove,
+        priority: -10,
+      },
+    },
+    {
+      event: Event.SLIP,
+      subscription: {
+        method: revertCursorToDefault,
+      },
+    },
+    {
+      event: Event.DOWN,
+      subscription: {
+        method: handleDown,
+        priority: -10,
+      },
+    },
+    {
+      event: Event.UP,
+      subscription: {
+        method: handleUpAfterResize,
+        priority: -10,
+      },
+    },
+    {
+      event: CoreEvent.CLOSE,
+      subscription: {
+        method: () => { unregister() },
+      },
+    }
+  ]);
 }

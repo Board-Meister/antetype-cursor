@@ -3,7 +3,7 @@ import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { selectionType } from "@src/module";
 import { IRequiredModules } from "@src/index";
 
-export  const getSizeAndStart = (layer: IBaseDef): { size: ISize, start: IStart} => {
+export const getSizeAndStart = (layer: IBaseDef): { size: ISize, start: IStart} => {
   const size = layer.area?.size ?? layer.size;
   const start = layer.area?.start ?? layer.start;
 

@@ -1,1 +1,905 @@
-var K=(e=>(e.STRUCTURE="antetype.structure",e.MIDDLE="antetype.structure.middle",e.BAR_BOTTOM="antetype.structure.bar.bottom",e.CENTER="antetype.structure.center",e.COLUMN_LEFT="antetype.structure.column.left",e.COLUMN_RIGHT="antetype.structure.column.right",e.BAR_TOP="antetype.structure.bar.top",e.MODULES="antetype.modules",e.ACTIONS="antetype.structure.column.left.actions",e))(K||{});var Y=(e=>(e.STRUCTURE="antetype.structure",e.MIDDLE="antetype.structure.middle",e.BAR_BOTTOM="antetype.structure.bar.bottom",e.CENTER="antetype.structure.center",e.COLUMN_LEFT="antetype.structure.column.left",e.COLUMN_RIGHT="antetype.structure.column.right",e.BAR_TOP="antetype.structure.bar.top",e.MODULES="antetype.modules",e.ACTIONS="antetype.structure.column.left.actions",e))(Y||{}),F=(e=>(e.INIT="antetype.init",e.DRAW="antetype.draw",e.CALC="antetype.calc",e))(F||{}),se=class{#t;#r=null;#e=null;static inject={minstrel:"boardmeister/minstrel",herald:"boardmeister/herald"};inject(e){this.#t=e}async#o(e,o){if(!this.#e){let r=this.#t.minstrel.getResourceUrl(this,"core.js");this.#r=(await import(r)).default,this.#e=this.#r({canvas:o,modules:e,injected:this.#t})}return this.#e}async register(e){let{modules:o,canvas:r}=e.detail;o.core=await this.#o(o,r)}async init(e){if(!this.#e)throw new Error("Instance not loaded, trigger registration event first");let{base:o,settings:r}=e.detail;for(let n in r)this.#e.setting.set(n,r[n]);let t=this.#e.meta.document;t.base=o;let a=[];return(this.#e.setting.get("fonts")??[]).forEach(n=>{a.push(this.#e.font.load(n))}),await Promise.all(a),t.layout=await this.#e.view.recalculate(t,t.base),await this.#e.view.redraw(t.layout),t}async cloneDefinitions(e){if(!this.#e)throw new Error("Instance not loaded, trigger registration event first");e.detail.element!==null&&(e.detail.element=await this.#e.clone.definitions(e.detail.element))}static subscriptions={[Y.MODULES]:"register","antetype.init":"init","antetype.calc":[{method:"cloneDefinitions",priority:-255}]}};var J=class{#t;#r=null;#e=null;static inject={minstrel:"boardmeister/minstrel",herald:"boardmeister/herald"};inject(o){this.#t=o}async register(o){let{modules:r,canvas:t}=o.detail;if(!this.#r){let a=this.#t.minstrel.getResourceUrl(this,"module.js");this.#r=(await import(a)).default}this.#e=r.cursor=this.#r({canvas:t,modules:r,injected:this.#t})}draw(o){if(!this.#e)return;let{element:r}=o.detail,a={selection:this.#e.drawSelection}[r.type];typeof a=="function"&&a(r)}static subscriptions={[K.MODULES]:"register",[F.DRAW]:"draw"}};var Q=(e=>(e.STRUCTURE="antetype.structure",e.MIDDLE="antetype.structure.middle",e.BAR_BOTTOM="antetype.structure.bar.bottom",e.CENTER="antetype.structure.center",e.COLUMN_LEFT="antetype.structure.column.left",e.COLUMN_RIGHT="antetype.structure.column.right",e.BAR_TOP="antetype.structure.bar.top",e.MODULES="antetype.modules",e))(Q||{}),C=(e=>(e.SAVE="antetype.memento.save",e))(C||{}),fe=class{#t;#r=null;#e=null;static inject={minstrel:"boardmeister/minstrel",herald:"boardmeister/herald"};inject(e){this.#t=e}async register(e){let{modules:o,canvas:r}=e.detail;if(!this.#r){let t=this.#t.minstrel.getResourceUrl(this,"module.js");this.#r=(await import(t)).default}this.#e=o.transform=this.#r({canvas:r,modules:o,injected:this.#t})}save(e){this.#e&&this.#e.addToStack(e.detail.state)}static subscriptions={[Q.MODULES]:"register","antetype.memento.save":"save"}};function B(){let e=new WeakMap,o=[],r=[],t=new WeakMap,a={get[Symbol.toStringTag](){return"IterableWeakMap"},get:n=>e.get(n),set:(n,c)=>(e.has(n)||(e.set(n,c),t.set(n,o.length),o.push(n),r.push(c)),a),delete:n=>!e.has(n)&&t.has(n)?!1:(e.has(n)&&e.delete(n),t.has(n)&&(o.splice(t.get(n),1),r.splice(t.get(n),1),t.delete(n),o.forEach((c,u)=>{t.set(c,u)})),!0),first:()=>r[0]??null,last:()=>r.slice(-1)[0]??null,firstKey:()=>o[0]??null,lastKey:()=>o.slice(-1)[0]??null,has:n=>e.has(n),keys:()=>[...o],values:()=>[...r],empty:()=>!!r.length,clone:()=>{let n=B();return o.forEach(c=>{n.set(c,a.get(c))}),n}};return Object.freeze(a)}var A=e=>{let o=e.area?.size??e.size,r=e.area?.start??e.start;return{size:o,start:r}},re=(e,o,{x:r,y:t},{w:a,h:n})=>e>=r&&e<=a+r&&o>=t&&o<=n+t,Z=(e,o,r,t=!0)=>{for(let a=e.length-1;a>=0;a--){let n=e[a];if(t&&n.type===M)continue;let{size:c=null,start:u=null}=A(n);if(!(!c||!u)&&re(o,r,u,c))return n}return null},$=(e,o,r,t=!0)=>{let a=[];for(let n=e.length-1;n>=0;n--){let c=e[n];if(t&&c.type===M)continue;let{size:u,start:I}=A(c);!u||!c||!(o>=I.x&&o<=u.w+I.x&&r>=I.y&&r<=u.h+I.y)||a.push(c)}return a},b=e=>typeof e=="number"&&isNaN(e)||typeof e>"u",x=(e,o,r,t)=>{o=e.core.clone.getClone(o),o.area&&(b(o.area.start.x)||(o.area.start.x+=r),b(o.area.start.y)||(o.area.start.y+=t)),o.start&&(b(o.start.x)||(o.start.x+=r),b(o.start.y)||(o.start.y+=t));let a=e.core.clone.getOriginal(o);if(e.workspace){let c=e.workspace;a.start&&(b(a.start.x)||(a.start.x=c.toRelative(o.start.x)),b(a.start.y)||(a.start.y=c.toRelative(o.start.y,"y")));return}let n=o.area?.start??o.start;n&&a.start&&(b(a.start.x)||(a.start.x=n.x+r),b(a.start.y)||(a.start.y=n.y+t))};function te(e){return e.type===M?e.selection.layer:e}function H({modules:e,injected:{herald:o}}){let r=B(),t=[],a=!1,n=!1,c=B(),u=e.core,I=()=>{for(;r.empty();)r.delete(r.firstKey())},f=()=>{c=B()},D=d=>{for(let y of r.keys())if(d===y)return d;return!1},E=d=>{for(let y of r.keys())if(d.includes(y))return y;return!1},T=()=>{let d=r.keys(),y=[];d.forEach(h=>{let g=e.core.clone.getOriginal(h);y.push({origin:"cursor.move",layer:g,data:{x:h.area.start.x,y:h.area.start.y,after:{x:0,y:0}},undo:(S,s)=>{let i=e.core.clone.getClone(S);s.after.x=i.area.start.x,s.after.y=i.area.start.y,x(e,S,s.x-i.area.start.x,s.y-i.area.start.y)},redo:(S,s)=>{x(e,S,s.after.x-s.x,s.after.y-s.y)}})}),y.length>0&&o.dispatch(new CustomEvent(C.SAVE,{detail:{state:y}}))},O=d=>{if(d.defaultPrevented||!a)return;let y=!n;n=!0;let{target:{down:h},origin:{movementX:g,movementY:S}}=d.detail;if(h.layers.length===0){!h.shiftKey&&!h.ctrlKey&&(I(),P());return}let s=h.layers[0],i=E(h.layers);!c.has(s)&&!i?(!h.shiftKey&&!h.ctrlKey&&I(),r.set(s,!0)):i&&r.set(i,!0),y&&T(),r.keys().forEach(l=>{x(e,l,g,S)}),P()},L=d=>{if(d.defaultPrevented)return;if(a=!1,n){n=!1;return}let{target:{down:y}}=d.detail,{shiftKey:h,ctrlKey:g}=y;!h&&!g&&I();let S=!0,s=!1;for(let i of y.layers){if(r.has(i)&&g){r.delete(i);break}if(!c.has(i)){r.set(i,!0),s=!0,S&&f(),c.set(i,!0);break}S=!1}s||(c=B()),P()},P=()=>{for(let d of t)u.manage.removeVolatile(d);t=[];for(let d of r.keys()){let{size:y,start:h}=A(d),g={type:M,size:y,start:h,selection:{layer:d}};t.push(g),u.manage.addVolatile(g)}u.view.redraw()},_=d=>{d.defaultPrevented||(a=!0)};return o.register("antetype.cursor.on.down",_),o.register("antetype.cursor.on.up",L),o.register("antetype.cursor.on.move",O),{selected:r,isSelected:D,showSelected:P}}function G({injected:{herald:e},modules:{core:o}},r){let t={selected:r,isDown:!1,down:{layers:[],x:0,y:0,shiftKey:!1,ctrlKey:!1},hover:{layer:null,x:0,y:0}},a=async(f,D)=>{let E=new CustomEvent("antetype.cursor.position",{detail:{x:f,y:D}});return await e.dispatch(E),E.detail},n=async f=>{t.isDown=!0;let{layerX:D,layerY:E}=f,{shiftKey:T,ctrlKey:O}=f,L=o.meta.document.layout;({x:D,y:E}=await a(D,E)),t.down.x=D,t.down.y=E,t.down.shiftKey=T,t.down.ctrlKey=O,t.down.layers=$(L,D,E),e.dispatch(new CustomEvent("antetype.cursor.on.down",{detail:{origin:f,target:t},cancelable:!0}))},c=async f=>{t.isDown=!1,await e.dispatch(new CustomEvent("antetype.cursor.on.up",{detail:{origin:f,target:t},cancelable:!0})),I(),await u(f)},u=async f=>{let D=o.meta.document.layout,{layerX:E,layerY:T}=f;({x:E,y:T}=await a(E,T));let O=Z(D,E,T,!1);t.hover.x=E,t.hover.y=T,O!==t.hover.layer&&await e.dispatch(new CustomEvent("antetype.cursor.on.slip",{detail:{origin:f,target:t,from:t.hover.layer,to:O},cancelable:!0})),t.hover.layer=O,await e.dispatch(new CustomEvent("antetype.cursor.on.move",{detail:{origin:f,target:t},cancelable:!0}))},I=()=>{t.down.x=0,t.down.y=0,t.down.shiftKey=!1,t.down.ctrlKey=!1,t.down.layers=[]};return{onDown:n,onUp:c,onMove:u}}function V(e){return{drawSelection:({start:{x:r,y:t},size:{w:a,h:n}})=>{e.save(),e.beginPath(),e.moveTo(r,t),e.lineTo(r+a,t),e.lineTo(r+a,t+n),e.lineTo(r,t+n),e.closePath(),e.strokeStyle="#1e272e",e.stroke(),e.restore()}}}function q({injected:{herald:e},canvas:o,modules:r}){let t=8,a=!1,n=!1,c=!1,u={waiting:!1,layout:null,movement:null},I=(s,i)=>{let{start:{x:l,y:p},size:{h:v,w:m}}=s,{x:w,y:z}=i.hover,N=10,U=0,R=z<=p+N&&z>=p-U,j=w<=l+U+m&&w>=l-N+m,W=z<=p+U+v&&z>=p-N+v,k=w<=l+N&&w>=l-U;return R&&k||W&&j?(t=R&&k?6:5,"nwse-resize"):R&&j||W&&k?(t=R&&j?4:7,"nesw-resize"):R||W?(t=R?0:1,"ns-resize"):k||j?(t=k?3:2,"ew-resize"):(f(),"pointer")},f=()=>{t=8},D=s=>{if(a)return;let{target:{hover:{layer:i}}}=s.detail;i&&(i=te(i),!r.core.clone.getOriginal(i)?.size)||(d(s),E(s))},E=s=>{let{target:i,origin:l}=s.detail,p=i.selected.keys();if(p.length===0||t===8||!i.isDown)return;let{movementY:v,movementX:m}=l;if((t===3||t===2)&&(v=0),(t===0||t===1)&&(m=0),n){u.waiting=!0,u.movement={x:m,y:v},u.layout=p;return}L(p),T(p,m,v)},T=(s,i,l)=>{for(let p of s)O(p,i,l)},O=(s,i,l)=>{t!==5&&t!==2&&t!==1&&x(r,s,t===4?0:i,t===7?0:l),(t===0||t===6||t===4)&&(l*=-1),(t===3||t===6||t===7)&&(i*=-1),P(s,i,l)},L=s=>{if(c)return;c=!0;let i=[];s.forEach(l=>{let p=r.core.clone.getOriginal(l);i.push({origin:"cursor.move",layer:p,data:{x:l.start.x,y:l.start.y,w:l.size.w,h:l.size.h,after:{w:0,h:0,x:0,y:0}},undo:async(v,m)=>{let w=r.core.clone.getClone(v);m.after.x=w.start.x,m.after.y=w.start.y,x(r,v,m.x-w.start.x,m.y-w.start.y),m.after.w=w.size.w,m.after.h=w.size.h,await P(v,m.w-w.size.w,m.h-w.size.h)},redo:async(v,m)=>{x(r,v,m.after.x-m.x,m.after.y-m.y),await P(v,m.after.w-m.w,m.after.h-m.h)}})}),i.length>0&&e.dispatch(new CustomEvent(C.SAVE,{detail:{state:i}}))},P=async(s,i,l)=>{if(!s.size)return;s=r.core.clone.getClone(s),s.area&&(b(s.area.size.w)||(s.area.size.w+=i),b(s.area.size.h)||(s.area.size.h+=l));let p=r.core.clone.getOriginal(s);if(r.workspace){let v=r.workspace;b(p.size.w)||(p.size.w=v.toRelative(s.area.size.w)),b(p.size.h)||(p.size.h=v.toRelative(s.area.size.h,"y"))}else{let v=s.area?.size??s.size;b(p.size?.w)||(p.size.w=v.w+i),b(p.size?.h)||(p.size.h=v.h+l)}if(n=!0,await r.core.manage.resize(p,s,p.size),r.core.view.redraw(),n=!1,u.waiting){let{layout:v,movement:m}=u,{x:w,y:z}=m;_(),T(v,w,z)}},_=()=>{u.waiting=!1,u.movement=null,u.layout=null},d=s=>{let{target:i}=s.detail;if(t!==8&&(s.preventDefault(),i.isDown))return;let l=i.hover.layer;l?.type===M?o.style.cursor=I(l,i):f()},y=()=>{o.style.cursor="default"},h=s=>{let{from:i,target:{isDown:l}}=s.detail;l&&t!==8||(f(),i?.type===M&&y())},g=s=>{if(t===8){a=!0;return}s.preventDefault()},S=s=>{c=!1,a=!1;let{target:i}=s.detail,l=i.hover.layer;t!==8&&s.preventDefault(),f(),l?.type===M?o.style.cursor=I(l,i):y()};e.register("antetype.cursor.on.move",{method:D,priority:-10}),e.register("antetype.cursor.on.slip",h),e.register("antetype.cursor.on.down",{method:g,priority:-10}),e.register("antetype.cursor.on.up",{method:S,priority:-10})}function X({modules:e,injected:{herald:o}},r){let t=async n=>{if(n.code==="Delete"||n.code==="Backspace"){let c=r.keys();c.forEach(u=>{e.core.manage.remove(u),r.delete(u)}),a(c),await e.core.view.recalculate(),e.core.view.redraw()}},a=n=>{let c=[];n.forEach(u=>{let I=e.core.clone.getOriginal(u);c.push({origin:"cursor.delete",layer:I,data:{},undo:async f=>{e.core.manage.add(f,f.hierarchy?.parent??null,f.hierarchy?.position??null),await e.core.view.recalculate()},redo:async f=>{e.core.manage.remove(f),await e.core.view.recalculate()}})}),c.length>0&&o.dispatch(new CustomEvent(C.SAVE,{detail:{state:c}}))};return document.addEventListener("keyup",t,!1),{}}var M="selection";function oe(e){let{canvas:o}=e;if(!o)throw new Error("[Antetype Cursor] Canvas is empty!");let r=o.getContext("2d"),{drawSelection:t}=V(r),{selected:a,showSelected:n,isSelected:c}=H(e),{onDown:u,onUp:I,onMove:f}=G(e,a);return q(e),X(e,a),o.addEventListener("mousedown",u,!1),o.addEventListener("mouseup",I,!1),o.addEventListener("mousemove",f,!1),{drawSelection:t,selected:a,showSelected:n,isSelected:c}}export{oe as default,M as selectionType};
+// ../../tool/antetype/dist/index.js
+var Event = /* @__PURE__ */ ((Event22) => {
+  Event22["STRUCTURE"] = "antetype.structure";
+  Event22["MIDDLE"] = "antetype.structure.middle";
+  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
+  Event22["CENTER"] = "antetype.structure.center";
+  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
+  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
+  Event22["BAR_TOP"] = "antetype.structure.bar.top";
+  Event22["MODULES"] = "antetype.modules";
+  Event22["ACTIONS"] = "antetype.structure.column.left.actions";
+  Event22["PROPERTIES"] = "antetype.structure.column.left.properties";
+  return Event22;
+})(Event || {});
+
+// ../antetype-core/dist/index.js
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i || {});
+var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c || {});
+var s = class {
+  #t;
+  #r = null;
+  #e = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#t = t;
+  }
+  async #n(t, n) {
+    if (!this.#e) {
+      let o2 = this.#t.minstrel.getResourceUrl(this, "core.js");
+      this.#r = (await import(o2)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
+    }
+    return this.#e;
+  }
+  async register(t) {
+    let { modules: n, canvas: o2 } = t.detail;
+    n.core = await this.#n(n, o2);
+  }
+  async init(t) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    let { base: n, settings: o2 } = t.detail;
+    for (let a in o2) this.#e.setting.set(a, o2[a]);
+    let r2 = this.#e.meta.document;
+    r2.base = n;
+    let l = [];
+    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
+      l.push(this.#e.font.load(a));
+    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
+  }
+  async cloneDefinitions(t) {
+    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
+    t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
+  }
+  static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
+};
+
+// src/shared.tsx
+var getSizeAndStart = (layer) => {
+  const size = layer.area?.size ?? layer.size;
+  const start = layer.area?.start ?? layer.start;
+  return {
+    size,
+    start
+  };
+};
+var isWithinLayer = (oX, oY, { x, y }, { w, h }) => oX >= x && oX <= w + x && oY >= y && oY <= h + y;
+var getLayerByPosition = (layout, x, y, skipSelection = true) => {
+  for (let i3 = layout.length - 1; i3 >= 0; i3--) {
+    const layer = layout[i3];
+    if (skipSelection && layer.type === selectionType) {
+      continue;
+    }
+    const { size = null, start = null } = getSizeAndStart(layer);
+    if (!size || !start) {
+      continue;
+    }
+    if (!isWithinLayer(x, y, start, size)) {
+      continue;
+    }
+    return layer;
+  }
+  return null;
+};
+var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
+  const clicked = [];
+  for (let i3 = layout.length - 1; i3 >= 0; i3--) {
+    const layer = layout[i3];
+    if (skipSelection && layer.type === selectionType) {
+      continue;
+    }
+    const { size, start } = getSizeAndStart(layer);
+    if (!size || !layer) {
+      continue;
+    }
+    const isClicked = x >= start.x && x <= size.w + start.x && y >= start.y && y <= size.h + start.y;
+    if (!isClicked) {
+      continue;
+    }
+    clicked.push(layer);
+  }
+  return clicked;
+};
+var isEditable = (value) => typeof value == "number" && isNaN(value) || typeof value == "undefined";
+var setNewPositionOnOriginal = (modules, layer, x, y) => {
+  layer = modules.core.clone.getClone(layer);
+  if (layer.area) {
+    if (!isEditable(layer.area.start.x)) layer.area.start.x += x;
+    if (!isEditable(layer.area.start.y)) layer.area.start.y += y;
+  }
+  if (layer.start) {
+    if (!isEditable(layer.start.x)) layer.start.x += x;
+    if (!isEditable(layer.start.y)) layer.start.y += y;
+  }
+  const original = modules.core.clone.getOriginal(layer);
+  if (modules.workspace) {
+    const workspace = modules.workspace;
+    if (original.start) {
+      if (!isEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
+      if (!isEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
+    }
+    return;
+  }
+  const area = layer.area?.start ?? layer.start;
+  if (area && original.start) {
+    if (!isEditable(original.start.x)) original.start.x = area.x + x;
+    if (!isEditable(original.start.y)) original.start.y = area.y + y;
+  }
+};
+
+// src/useDetect.tsx
+function useDetect({
+  injected: { herald },
+  modules: { core }
+}, selected) {
+  const eventState = {
+    selected,
+    isDown: false,
+    wasMoved: false,
+    down: {
+      layers: [],
+      x: 0,
+      y: 0,
+      shiftKey: false,
+      ctrlKey: false
+    },
+    hover: {
+      layer: null,
+      x: 0,
+      y: 0
+    }
+  };
+  const calcPosition = async (x, y) => {
+    const event = new CustomEvent("antetype.cursor.position" /* POSITION */, { detail: { x, y } });
+    await herald.dispatch(event);
+    return event.detail;
+  };
+  const onDown = async (e) => {
+    eventState.isDown = true;
+    eventState.wasMoved = false;
+    let { layerX: x, layerY: y } = e;
+    const { shiftKey, ctrlKey } = e;
+    const layout = core.meta.document.layout;
+    ({ x, y } = await calcPosition(x, y));
+    eventState.down.x = x;
+    eventState.down.y = y;
+    eventState.down.shiftKey = shiftKey;
+    eventState.down.ctrlKey = ctrlKey;
+    eventState.down.layers = getAllClickedLayers(layout, x, y);
+    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, {
+      detail: {
+        origin: e,
+        target: eventState
+      },
+      cancelable: true
+    }));
+  };
+  const onUp = async (e) => {
+    eventState.isDown = false;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
+    clearEventStateDown();
+    await onMove(e);
+  };
+  const onMove = async (e) => {
+    eventState.wasMoved = true;
+    const layout = core.meta.document.layout;
+    let { layerX: x, layerY: y } = e;
+    ({ x, y } = await calcPosition(x, y));
+    const newLayer = getLayerByPosition(layout, x, y, false);
+    eventState.hover.x = x;
+    eventState.hover.y = y;
+    if (newLayer !== eventState.hover.layer) {
+      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, {
+        detail: {
+          origin: e,
+          target: eventState,
+          from: eventState.hover.layer,
+          to: newLayer
+        },
+        cancelable: true
+      }));
+    }
+    eventState.hover.layer = newLayer;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
+  };
+  const clearEventStateDown = () => {
+    eventState.down.x = 0;
+    eventState.down.y = 0;
+    eventState.down.shiftKey = false;
+    eventState.down.ctrlKey = false;
+    eventState.down.layers = [];
+  };
+  return {
+    onDown,
+    onUp,
+    onMove
+  };
+}
+
+// src/index.tsx
+var AntetypeCursor = class {
+  #injected;
+  #module = null;
+  #instance = null;
+  static inject = {
+    minstrel: "boardmeister/minstrel",
+    herald: "boardmeister/herald"
+  };
+  inject(injections) {
+    this.#injected = injections;
+  }
+  async register(event) {
+    const { modules, canvas } = event.detail;
+    if (!this.#module) {
+      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
+      this.#module = (await import(module)).default;
+    }
+    this.#instance = modules.cursor = this.#module({
+      canvas,
+      modules,
+      injected: this.#injected
+    });
+  }
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      selection: this.#instance.drawSelection
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
+  }
+  static subscriptions = {
+    [Event.MODULES]: "register",
+    [c.DRAW]: "draw"
+  };
+};
+
+// ../antetype-memento/dist/index.js
+var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
+var i2 = ((t) => (t.SAVE = "antetype.memento.save", t))(i2 || {});
+var o = class {
+  #e;
+  #t = null;
+  #r = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#e = t;
+  }
+  async register(t) {
+    let { modules: s2, canvas: n } = t.detail;
+    if (!this.#t) {
+      let a = this.#e.minstrel.getResourceUrl(this, "module.js");
+      this.#t = (await import(a)).default;
+    }
+    this.#r = s2.transform = this.#t({ canvas: n, modules: s2, injected: this.#e });
+  }
+  save(t) {
+    this.#r && this.#r.addToStack(t.detail.state);
+  }
+  static subscriptions = { [r.MODULES]: "register", "antetype.memento.save": "save" };
+};
+
+// src/IterableWeakMap.tsx
+function IterableWeakMap() {
+  let weakMap = /* @__PURE__ */ new WeakMap(), arrKeys = [], arrValues = [], objectToIndex = /* @__PURE__ */ new WeakMap();
+  const _ = {
+    get [Symbol.toStringTag]() {
+      return "IterableWeakMap";
+    },
+    get: (key) => weakMap.get(key),
+    set: (key, value) => {
+      if (weakMap.has(key)) {
+        return _;
+      }
+      weakMap.set(key, value);
+      objectToIndex.set(key, arrKeys.length);
+      arrKeys.push(key);
+      arrValues.push(value);
+      return _;
+    },
+    delete: (key) => {
+      if (!weakMap.has(key) && objectToIndex.has(key)) {
+        return false;
+      }
+      if (weakMap.has(key)) {
+        weakMap.delete(key);
+      }
+      if (objectToIndex.has(key)) {
+        arrKeys.splice(objectToIndex.get(key), 1);
+        arrValues.splice(objectToIndex.get(key), 1);
+        objectToIndex.delete(key);
+        arrKeys.forEach((value, i3) => {
+          objectToIndex.set(value, i3);
+        });
+      }
+      return true;
+    },
+    first: () => arrValues[0] ?? null,
+    last: () => arrValues.slice(-1)[0] ?? null,
+    firstKey: () => arrKeys[0] ?? null,
+    lastKey: () => arrKeys.slice(-1)[0] ?? null,
+    has: (key) => weakMap.has(key),
+    keys: () => [...arrKeys],
+    values: () => [...arrValues],
+    empty: () => arrValues.length == 0,
+    reset: function() {
+      weakMap = /* @__PURE__ */ new WeakMap();
+      objectToIndex = /* @__PURE__ */ new WeakMap();
+      arrKeys = [];
+      arrValues = [];
+    },
+    clone: () => {
+      const cloned = IterableWeakMap();
+      arrKeys.forEach((key) => {
+        cloned.set(key, _.get(key));
+      });
+      return cloned;
+    }
+  };
+  return Object.freeze(_);
+}
+
+// src/useSelection.tsx
+function getLayerFromSelection(layer) {
+  if (layer.type === selectionType) {
+    return layer.selection.layer;
+  }
+  return layer;
+}
+function useSelection({
+  modules,
+  injected: { herald }
+}) {
+  const selected = IterableWeakMap();
+  let shown = [];
+  let canMove = false;
+  let skipUp = false;
+  let seeThroughStackMap = IterableWeakMap();
+  const core = modules.core;
+  const resetSelected = () => {
+    while (!selected.empty()) {
+      selected.delete(selected.firstKey());
+    }
+  };
+  const resetSeeThroughStackMap = () => {
+    seeThroughStackMap = IterableWeakMap();
+  };
+  const isSelected = (needle) => {
+    const original = core.clone.getOriginal(needle);
+    if (selected.has(original)) {
+      return original;
+    }
+    return false;
+  };
+  const isAnySelected = (needles) => {
+    for (const needle of needles) {
+      const original = core.clone.getOriginal(needle);
+      if (selected.has(original)) {
+        return original;
+      }
+    }
+    return false;
+  };
+  const saveSelectedPosition = () => {
+    const layers = selected.keys();
+    const state = [];
+    layers.forEach((original) => {
+      const layer = modules.core.clone.getClone(original);
+      state.push({
+        origin: "cursor.move",
+        layer: original,
+        data: {
+          x: layer.area.start.x,
+          y: layer.area.start.y,
+          after: {
+            x: 0,
+            y: 0
+          }
+        },
+        undo: (original2, data) => {
+          const clone = modules.core.clone.getClone(original2);
+          data.after.x = clone.area.start.x;
+          data.after.y = clone.area.start.y;
+          setNewPositionOnOriginal(modules, original2, data.x - clone.area.start.x, data.y - clone.area.start.y);
+        },
+        redo: (original2, data) => {
+          setNewPositionOnOriginal(modules, original2, data.after.x - data.x, data.after.y - data.y);
+        }
+      });
+    });
+    if (state.length > 0) {
+      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+    }
+  };
+  const startSelectionMove = (e) => {
+    if (e.defaultPrevented || !canMove) {
+      return;
+    }
+    const isFirstMotionAfterDown = !skipUp;
+    skipUp = true;
+    const { target: { down }, origin: { movementX, movementY } } = e.detail;
+    if (0 === down.layers.length) {
+      if (!down.shiftKey && !down.ctrlKey) {
+        resetSelected();
+        showSelected();
+      }
+      return;
+    }
+    const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
+    const selectedLayer = isAnySelected(down.layers);
+    if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
+      if (!down.shiftKey && !down.ctrlKey) {
+        resetSelected();
+      }
+      selected.set(newSelectedLayer, true);
+    } else if (selectedLayer) {
+      selected.set(selectedLayer, true);
+    }
+    if (isFirstMotionAfterDown) {
+      saveSelectedPosition();
+    }
+    selected.keys().forEach((layer) => {
+      setNewPositionOnOriginal(modules, layer, movementX, movementY);
+    });
+    showSelected();
+  };
+  const selectionMouseUp = (event) => {
+    if (event.defaultPrevented) {
+      return;
+    }
+    canMove = false;
+    if (skipUp) {
+      skipUp = false;
+      return;
+    }
+    const { target: { down } } = event.detail;
+    const { shiftKey, ctrlKey } = down;
+    if (!shiftKey && !ctrlKey) {
+      resetSelected();
+    }
+    let isFirst = true;
+    let wasSelected = false;
+    for (const layer of down.layers) {
+      const origin = modules.core.clone.getOriginal(layer);
+      if (selected.has(origin) && ctrlKey) {
+        selected.delete(origin);
+        break;
+      }
+      if (!seeThroughStackMap.has(origin)) {
+        selected.set(origin, true);
+        wasSelected = true;
+        if (isFirst) {
+          resetSeeThroughStackMap();
+        }
+        seeThroughStackMap.set(origin, true);
+        break;
+      }
+      isFirst = false;
+    }
+    if (!wasSelected) {
+      seeThroughStackMap = IterableWeakMap();
+    }
+    showSelected();
+  };
+  const showSelected = () => {
+    for (const layer of shown) {
+      core.manage.removeVolatile(layer);
+    }
+    shown = [];
+    for (const layer of selected.keys()) {
+      const { size, start } = getSizeAndStart(core.clone.getClone(layer));
+      const selection = {
+        type: selectionType,
+        size,
+        start,
+        selection: {
+          layer
+        }
+      };
+      shown.push(selection);
+      core.manage.addVolatile(selection);
+    }
+    core.view.redraw();
+  };
+  const enableMove = (e) => {
+    if (e.defaultPrevented) {
+      return;
+    }
+    canMove = true;
+  };
+  const unregister = herald.batch([
+    {
+      event: "antetype.cursor.on.down" /* DOWN */,
+      subscription: enableMove
+    },
+    {
+      event: "antetype.cursor.on.up" /* UP */,
+      subscription: selectionMouseUp
+    },
+    {
+      event: "antetype.cursor.on.move" /* MOVE */,
+      subscription: startSelectionMove
+    },
+    {
+      event: c.CLOSE,
+      subscription: {
+        method: () => {
+          unregister();
+        }
+      }
+    }
+  ]);
+  return {
+    selected,
+    isSelected,
+    showSelected
+  };
+}
+
+// src/useDraw.tsx
+function useDraw(ctx) {
+  const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.closePath();
+    ctx.strokeStyle = "#1e272e";
+    ctx.stroke();
+    ctx.restore();
+  };
+  return {
+    drawSelection
+  };
+}
+
+// src/useResize.tsx
+function useResize({
+  injected: { herald },
+  canvas,
+  modules
+}, showSelected) {
+  let mode = 8 /* NONE */, disableResize = false, resizeInProgress = false, saved = false;
+  const eventSnapshot = {
+    waiting: false,
+    layout: null,
+    movement: null
+  };
+  const determinateCursorType = (layer, target) => {
+    const { start: { x: sX, y: sY }, size: { h, w } } = layer;
+    const { x, y } = target.hover;
+    const bufferTop = 10, bufferBottom = 0;
+    const top = y <= sY + bufferTop && y >= sY - bufferBottom, right = x <= sX + bufferBottom + w && x >= sX - bufferTop + w, bottom = y <= sY + bufferBottom + h && y >= sY - bufferTop + h, left = x <= sX + bufferTop && x >= sX - bufferBottom;
+    if (top && left || bottom && right) {
+      mode = top && left ? 6 /* TOP_LEFT */ : 5 /* BOTTOM_RIGHT */;
+      return "nwse-resize";
+    }
+    if (top && right || bottom && left) {
+      mode = top && right ? 4 /* TOP_RIGHT */ : 7 /* BOTTOM_LEFT */;
+      return "nesw-resize";
+    }
+    if (top || bottom) {
+      mode = top ? 0 /* TOP */ : 1 /* BOTTOM */;
+      return "ns-resize";
+    }
+    if (left || right) {
+      mode = left ? 3 /* LEFT */ : 2 /* RIGHT */;
+      return "ew-resize";
+    }
+    resetMode();
+    return "pointer";
+  };
+  const resetMode = () => {
+    mode = 8 /* NONE */;
+  };
+  const handleMove = (e) => {
+    if (disableResize) {
+      return;
+    }
+    let { target: { hover: { layer } } } = e.detail;
+    if (layer) {
+      layer = getLayerFromSelection(modules.core.clone.getClone(layer));
+      const original = modules.core.clone.getOriginal(layer);
+      if (!original?.size) {
+        return;
+      }
+    }
+    canvasCursorTypeChange(e);
+    resizeSelected(e);
+  };
+  const resizeSelected = (e) => {
+    const { target, origin } = e.detail;
+    const layers = target.selected.keys();
+    if (0 === layers.length || 8 /* NONE */ === mode || !target.isDown) {
+      return;
+    }
+    let { movementY: y, movementX: x } = origin;
+    if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
+    if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
+    if (resizeInProgress) {
+      eventSnapshot.waiting = true;
+      eventSnapshot.movement = { x, y };
+      eventSnapshot.layout = layers;
+      return;
+    }
+    saveResize(layers);
+    bulkResize(layers, x, y);
+  };
+  const bulkResize = (layout, x, y) => {
+    for (const layer of layout) {
+      resize(layer, x, y);
+    }
+  };
+  const resize = (original, x, y) => {
+    const layer = modules.core.clone.getClone(original);
+    if (mode !== 5 /* BOTTOM_RIGHT */ && mode !== 2 /* RIGHT */ && mode !== 1 /* BOTTOM */) {
+      setNewPositionOnOriginal(
+        modules,
+        layer,
+        mode === 4 /* TOP_RIGHT */ ? 0 : x,
+        mode === 7 /* BOTTOM_LEFT */ ? 0 : y
+      );
+    }
+    if (mode === 0 /* TOP */ || mode === 6 /* TOP_LEFT */ || mode === 4 /* TOP_RIGHT */) {
+      y *= -1;
+    }
+    if (mode === 3 /* LEFT */ || mode === 6 /* TOP_LEFT */ || mode === 7 /* BOTTOM_LEFT */) {
+      x *= -1;
+    }
+    void changeLayerSize(layer, x, y);
+  };
+  const saveResize = (layers) => {
+    if (saved) {
+      return;
+    }
+    saved = true;
+    const state = [];
+    layers.forEach((original) => {
+      const layer = modules.core.clone.getClone(original);
+      state.push({
+        origin: "cursor.move",
+        layer: original,
+        data: {
+          x: layer.start.x,
+          y: layer.start.y,
+          w: layer.size.w,
+          h: layer.size.h,
+          after: {
+            w: 0,
+            h: 0,
+            x: 0,
+            y: 0
+          }
+        },
+        undo: async (original2, data) => {
+          const clone = modules.core.clone.getClone(original2);
+          data.after.x = clone.start.x;
+          data.after.y = clone.start.y;
+          setNewPositionOnOriginal(modules, original2, data.x - clone.start.x, data.y - clone.start.y);
+          data.after.w = clone.size.w;
+          data.after.h = clone.size.h;
+          await changeLayerSize(original2, data.w - clone.size.w, data.h - clone.size.h);
+        },
+        redo: async (original2, data) => {
+          setNewPositionOnOriginal(modules, original2, data.after.x - data.x, data.after.y - data.y);
+          await changeLayerSize(original2, data.after.w - data.w, data.after.h - data.h);
+        }
+      });
+    });
+    if (state.length > 0) {
+      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+    }
+  };
+  const changeLayerSize = async (original, x, y) => {
+    if (!original.size) {
+      return;
+    }
+    const layer = modules.core.clone.getClone(original);
+    if (layer.area) {
+      if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
+      if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
+    }
+    original = modules.core.clone.getOriginal(layer);
+    if (modules.workspace) {
+      const workspace = modules.workspace;
+      original.size.w = workspace.toRelative(layer.area.size.w);
+      original.size.h = workspace.toRelative(layer.area.size.h, "y");
+    } else {
+      const area = layer.area?.size ?? layer.size;
+      original.size.w = area.w + x;
+      original.size.h = area.h + y;
+    }
+    resizeInProgress = true;
+    await modules.core.manage.resize(original, original.size);
+    showSelected();
+    modules.core.view.redraw();
+    resizeInProgress = false;
+    if (eventSnapshot.waiting) {
+      const { layout, movement } = eventSnapshot;
+      const { x: x2, y: y2 } = movement;
+      resetEventSnapshot();
+      bulkResize(layout, x2, y2);
+    }
+  };
+  const resetEventSnapshot = () => {
+    eventSnapshot.waiting = false;
+    eventSnapshot.movement = null;
+    eventSnapshot.layout = null;
+  };
+  const canvasCursorTypeChange = (e) => {
+    const { target } = e.detail;
+    if (mode !== 8 /* NONE */) {
+      e.preventDefault();
+      if (target.isDown) {
+        return;
+      }
+    }
+    const layer = target.hover.layer;
+    if (layer?.type === selectionType) {
+      canvas.style.cursor = determinateCursorType(layer, target);
+    } else {
+      resetMode();
+    }
+  };
+  const resetCanvasCursor = () => {
+    canvas.style.cursor = "default";
+  };
+  const revertCursorToDefault = (e) => {
+    const { from, target: { isDown } } = e.detail;
+    if (isDown && mode !== 8 /* NONE */) {
+      return;
+    }
+    resetMode();
+    if (from?.type === selectionType) {
+      resetCanvasCursor();
+    }
+  };
+  const handleDown = (e) => {
+    if (mode === 8 /* NONE */) {
+      disableResize = true;
+      return;
+    }
+    e.preventDefault();
+  };
+  const handleUpAfterResize = (e) => {
+    saved = false;
+    disableResize = false;
+    const { target } = e.detail;
+    const layer = target.hover.layer;
+    if (mode !== 8 /* NONE */) {
+      e.preventDefault();
+    }
+    resetMode();
+    if (layer?.type === selectionType) {
+      canvas.style.cursor = determinateCursorType(layer, target);
+    } else {
+      resetCanvasCursor();
+    }
+  };
+  const unregister = herald.batch([
+    {
+      event: "antetype.cursor.on.move" /* MOVE */,
+      subscription: {
+        method: handleMove,
+        priority: -10
+      }
+    },
+    {
+      event: "antetype.cursor.on.slip" /* SLIP */,
+      subscription: {
+        method: revertCursorToDefault
+      }
+    },
+    {
+      event: "antetype.cursor.on.down" /* DOWN */,
+      subscription: {
+        method: handleDown,
+        priority: -10
+      }
+    },
+    {
+      event: "antetype.cursor.on.up" /* UP */,
+      subscription: {
+        method: handleUpAfterResize,
+        priority: -10
+      }
+    },
+    {
+      event: c.CLOSE,
+      subscription: {
+        method: () => {
+          unregister();
+        }
+      }
+    }
+  ]);
+}
+
+// src/useDelete.tsx
+function useDelete({
+  modules,
+  injected: { herald },
+  canvas
+}, selected) {
+  canvas.setAttribute("tabindex", "0");
+  const onKeyUp = async (e) => {
+    if (e.target !== canvas && e.target !== document.body) {
+      return;
+    }
+    if (e.code === "Delete" || e.code === "Backspace") {
+      const keys = selected.keys();
+      keys.forEach((key) => {
+        modules.core.manage.remove(key);
+        selected.delete(key);
+      });
+      saveDelete(keys);
+      await modules.core.view.recalculate();
+      modules.core.view.redraw();
+    }
+  };
+  const saveDelete = (layers) => {
+    const state = [];
+    layers.forEach((layer) => {
+      const original = modules.core.clone.getOriginal(layer);
+      state.push({
+        origin: "cursor.delete",
+        layer: original,
+        data: {},
+        undo: async (original2) => {
+          modules.core.manage.add(original2, original2.hierarchy?.parent ?? null, original2.hierarchy?.position ?? null);
+          await modules.core.view.recalculate();
+        },
+        redo: async (original2) => {
+          modules.core.manage.remove(original2);
+          await modules.core.view.recalculate();
+        }
+      });
+    });
+    if (state.length > 0) {
+      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+    }
+  };
+  document.addEventListener("keyup", onKeyUp, false);
+  return {};
+}
+
+// src/module.tsx
+var selectionType = "selection";
+function Cursor(params) {
+  const { canvas } = params;
+  if (!canvas) {
+    throw new Error("[Antetype Cursor] Canvas is empty!");
+  }
+  const ctx = canvas.getContext("2d");
+  const { drawSelection } = useDraw(ctx);
+  const { selected, showSelected, isSelected } = useSelection(params);
+  const { onDown, onUp, onMove } = useDetect(params, selected);
+  useResize(params, showSelected);
+  useDelete(params, selected);
+  canvas.addEventListener("mousedown", onDown, false);
+  canvas.addEventListener("mouseup", onUp, false);
+  canvas.addEventListener("mousemove", onMove, false);
+  return {
+    drawSelection,
+    selected,
+    showSelected,
+    isSelected
+  };
+}
+export {
+  Cursor as default,
+  selectionType
+};

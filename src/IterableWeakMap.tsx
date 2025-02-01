@@ -12,68 +12,76 @@ export interface IIterableWeakMap<T extends object, P> {
   keys: () => T[];
   values: () => P[];
   empty: () => boolean;
+  reset: () => void;
   clone: () => IIterableWeakMap<T, P>;
   [Symbol.toStringTag]: string;
 }
 export default function IterableWeakMap<T extends object, P>(): IIterableWeakMap<T, P> {
-  const weakMap = new WeakMap(),
+  let weakMap = new WeakMap<T, P>(),
     arrKeys: T[] = [],
     arrValues: P[] = [],
-    objectToIndex = new WeakMap<T, number>(),
-    _ = {
-      get [Symbol.toStringTag]() {
-        return 'IterableWeakMap';
-      },
-      get: (key: T): P|undefined => weakMap.get(key) as P|undefined,
-      set: (key: T, value: P): IIterableWeakMap<T, P> => {
-        if (weakMap.has(key)) {
-          return _;
-        }
-        weakMap.set(key, value);
-        objectToIndex.set(key, arrKeys.length);
-        arrKeys.push(key);
-        arrValues.push(value);
-
+    objectToIndex = new WeakMap<T, number>()
+  ;
+  const _ = {
+    get [Symbol.toStringTag]() {
+      return 'IterableWeakMap';
+    },
+    get: (key: T): P|undefined => weakMap.get(key),
+    set: (key: T, value: P): IIterableWeakMap<T, P> => {
+      if (weakMap.has(key)) {
         return _;
-      },
-      delete: (key: T): boolean => {
-        if (!weakMap.has(key) && objectToIndex.has(key)) {
-          return false;
-        }
-
-        if (weakMap.has(key)) {
-          weakMap.delete(key);
-        }
-
-        if (objectToIndex.has(key)) {
-          arrKeys.splice(objectToIndex.get(key)!, 1);
-          arrValues.splice(objectToIndex.get(key)!, 1);
-          objectToIndex.delete(key);
-
-          arrKeys.forEach((value, i) => {
-            objectToIndex.set(value, i);
-          });
-        }
-
-        return true;
-      },
-      first: (): P|null => arrValues[0] ?? null,
-      last: (): P|null => arrValues.slice(-1)[0] ?? null,
-      firstKey: (): T|null => arrKeys[0] ?? null,
-      lastKey: (): T|null => arrKeys.slice(-1)[0] ?? null,
-      has: (key: T): boolean => weakMap.has(key),
-      keys: (): T[] => [...arrKeys],
-      values: (): P[] => [...arrValues],
-      empty: (): boolean => !!arrValues.length,
-      clone: (): IIterableWeakMap<T, P> => {
-        const cloned = IterableWeakMap<T, P>();
-        arrKeys.forEach(key => {
-          cloned.set(key, _.get(key)!);
-        })
-
-        return cloned;
       }
+      weakMap.set(key, value);
+      objectToIndex.set(key, arrKeys.length);
+      arrKeys.push(key);
+      arrValues.push(value);
+
+      return _;
+    },
+    delete: (key: T): boolean => {
+      if (!weakMap.has(key) && objectToIndex.has(key)) {
+        return false;
+      }
+
+      if (weakMap.has(key)) {
+        weakMap.delete(key);
+      }
+
+      if (objectToIndex.has(key)) {
+        arrKeys.splice(objectToIndex.get(key)!, 1);
+        arrValues.splice(objectToIndex.get(key)!, 1);
+        objectToIndex.delete(key);
+
+        arrKeys.forEach((value, i) => {
+          objectToIndex.set(value, i);
+        });
+      }
+
+      return true;
+    },
+    first: (): P|null => arrValues[0] ?? null,
+    last: (): P|null => arrValues.slice(-1)[0] ?? null,
+    firstKey: (): T|null => arrKeys[0] ?? null,
+    lastKey: (): T|null => arrKeys.slice(-1)[0] ?? null,
+    has: (key: T): boolean => weakMap.has(key),
+    keys: (): T[] => [...arrKeys],
+    values: (): P[] => [...arrValues],
+    empty: (): boolean => arrValues.length == 0,
+    reset: function (): void {
+      weakMap = new WeakMap();
+      objectToIndex = new WeakMap()
+      arrKeys = [];
+      arrValues = [];
+    },
+    clone: (): IIterableWeakMap<T, P> => {
+      const cloned = IterableWeakMap<T, P>();
+      arrKeys.forEach(key => {
+        cloned.set(key, _.get(key)!);
+      })
+
+      return cloned;
     }
+  }
   ;
   return Object.freeze(_);
 }

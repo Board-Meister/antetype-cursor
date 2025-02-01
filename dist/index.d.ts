@@ -24,21 +24,25 @@ interface RegisterConfig {
 		src: string;
 	};
 }
-type Module = Record<string, unknown>;
+declare class CModule<T = any> {
+	constructor(...args: unknown[]);
+	inject?: (injections: T) => void;
+}
+type Module<T = any> = CModule<T> | Record<string, unknown>;
 interface IModuleImportObject {
-	default?: Module | React$1.FC | ((...args: unknown[]) => void);
+	default?: Module | ((...args: unknown[]) => void);
 }
 interface IModuleImport {
 	config: RegisterConfig;
 	module: IModuleImportObject | (() => Promise<Module>);
 }
-declare class _IInjectable {
+declare class _IInjectable<T = object> {
 	constructor(...args: unknown[]);
-	inject(injections: Record<string, object>): void;
+	inject(injections: T): void;
 	scope?(): Record<string, unknown>;
 	static inject: Record<string, string>;
 }
-type IInjectable = typeof _IInjectable;
+type IInjectable<T> = typeof _IInjectable<T>;
 declare class Marshal {
 	static version: string;
 	renderCount: number;
@@ -46,7 +50,7 @@ declare class Marshal {
 	loaded: Record<string, object>;
 	tagMap: Record<string, IModuleImport[]>;
 	scope: Record<string, unknown>;
-	instanceMap: WeakMap<Module, RegisterConfig>;
+	instanceMap: WeakMap<Module<any>, RegisterConfig>;
 	constructor();
 	addScope(name: string, value: unknown): void;
 	render(): void;
@@ -218,13 +222,14 @@ interface ICore {
 		markAsLayer: (layer: IBaseDef) => IBaseDef;
 		add: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
 		addVolatile: (def: IBaseDef, parent?: IParentDef | null, position?: number | null) => void;
-		move: (original: IBaseDef, def: IBaseDef, newStart: IStart) => Promise<void>;
-		resize: (original: IBaseDef, def: IBaseDef, newSize: ISize) => Promise<void>;
+		move: (original: IBaseDef, newStart: IStart) => Promise<void>;
+		resize: (original: IBaseDef, newSize: ISize) => Promise<void>;
 		remove: (def: IBaseDef) => void;
 		removeVolatile: (def: IBaseDef) => void;
+		calcAndUpdateLayer: (original: IBaseDef) => Promise<void>;
 	};
 	view: {
-		calc: (element: IBaseDef, parent: IParentDef, position: number) => Promise<IBaseDef | null>;
+		calc: (element: IBaseDef, parent?: IParentDef, position?: number) => Promise<IBaseDef | null>;
 		draw: (element: IBaseDef) => void;
 		redraw: (layout?: Layout) => void;
 		recalculate: (parent?: IParentDef, layout?: Layout) => Promise<Layout>;
@@ -256,8 +261,40 @@ interface IIterableWeakMap<T extends object, P> {
 	keys: () => T[];
 	values: () => P[];
 	empty: () => boolean;
+	reset: () => void;
 	clone: () => IIterableWeakMap<T, P>;
 	[Symbol.toStringTag]: string;
+}
+type Selected = IIterableWeakMap<IBaseDef, true>;
+export interface IEventDown {
+	x: number;
+	y: number;
+	layers: Layout;
+	shiftKey: boolean;
+	ctrlKey: boolean;
+}
+export interface IEventHover {
+	layer: IBaseDef | null;
+	x: number;
+	y: number;
+}
+export interface IEvent {
+	isDown: boolean;
+	wasMoved: boolean;
+	selected: Selected;
+	down: IEventDown;
+	hover: IEventHover;
+}
+interface BaseEvent {
+	origin: MouseEvent;
+	target: IEvent;
+}
+export type DownEvent = BaseEvent;
+export type UpEvent = BaseEvent;
+export type MoveEvent = BaseEvent;
+export interface SlipEvent extends BaseEvent {
+	from: IBaseDef | null;
+	to: IBaseDef | null;
 }
 export interface IRequiredModules extends Modules {
 	core: ICore;
@@ -296,7 +333,7 @@ export declare class AntetypeCursor {
 	draw(event: CustomEvent<DrawEvent>): void;
 	static subscriptions: Subscriptions;
 }
-declare const EnAntetypeCursor: IInjectable & ISubscriber;
+declare const EnAntetypeCursor: IInjectable<IInjected> & ISubscriber;
 
 export {
 	EnAntetypeCursor as default,

@@ -14,10 +14,16 @@ export default function useDelete(
   {
     modules,
     injected: { herald },
+    canvas,
   }: ICursorParams,
   selected: Selected,
 ): IDelete {
+  canvas!.setAttribute('tabindex', '0');
   const onKeyUp = async (e: KeyboardEvent): Promise<void> => {
+    if (e.target !== canvas && e.target !== document.body) {
+      return;
+    }
+
     if (e.code === "Delete" || e.code === "Backspace") {
       const keys = selected.keys();
       keys.forEach(key => {
