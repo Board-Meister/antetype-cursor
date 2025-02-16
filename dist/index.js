@@ -1,21 +1,6 @@
-// ../../tool/antetype/dist/index.js
-var Event = /* @__PURE__ */ ((Event22) => {
-  Event22["STRUCTURE"] = "antetype.structure";
-  Event22["MIDDLE"] = "antetype.structure.middle";
-  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event22["CENTER"] = "antetype.structure.center";
-  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event22["BAR_TOP"] = "antetype.structure.bar.top";
-  Event22["MODULES"] = "antetype.modules";
-  Event22["ACTIONS"] = "antetype.structure.column.left.actions";
-  Event22["PROPERTIES"] = "antetype.structure.column.left.properties";
-  return Event22;
-})(Event || {});
-
 // ../antetype-core/dist/index.js
-var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i || {});
-var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c || {});
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.COLUMN_RIGHT_AFTER = "antetype.structure.column.right.after", e.COLUMN_RIGHT_BEFORE = "antetype.structure.column.right.before", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e.SHOW_PROPERTIES = "antetype.structure.column.left.properties.show", e))(i || {});
+var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2.RECALC_FINISHED = "antetype.recalc.finished", r2.MODULES = "antetype.modules", r2))(c || {});
 var s = class {
   #t;
   #r = null;
@@ -38,13 +23,13 @@ var s = class {
   async init(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
     let { base: n, settings: o2 } = t.detail;
-    for (let a in o2) this.#e.setting.set(a, o2[a]);
-    let r2 = this.#e.meta.document;
-    r2.base = n;
+    for (let r2 in o2) this.#e.setting.set(r2, o2[r2]);
+    let a = this.#e.meta.document;
+    a.base = n;
     let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
-      l.push(this.#e.font.load(a));
-    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
+    return (this.#e.setting.get("fonts") ?? []).forEach((r2) => {
+      l.push(this.#e.font.load(r2));
+    }), await Promise.all(l), a.layout = await this.#e.view.recalculate(a, a.base), await this.#e.view.redraw(a.layout), a;
   }
   async cloneDefinitions(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
@@ -79,14 +64,14 @@ var o = class {
 };
 
 // src/index.tsx
-var Event2 = /* @__PURE__ */ ((Event3) => {
-  Event3["POSITION"] = "antetype.cursor.position";
-  Event3["DOWN"] = "antetype.cursor.on.down";
-  Event3["UP"] = "antetype.cursor.on.up";
-  Event3["MOVE"] = "antetype.cursor.on.move";
-  Event3["SLIP"] = "antetype.cursor.on.slip";
-  return Event3;
-})(Event2 || {});
+var Event = /* @__PURE__ */ ((Event2) => {
+  Event2["POSITION"] = "antetype.cursor.position";
+  Event2["DOWN"] = "antetype.cursor.on.down";
+  Event2["UP"] = "antetype.cursor.on.up";
+  Event2["MOVE"] = "antetype.cursor.on.move";
+  Event2["SLIP"] = "antetype.cursor.on.slip";
+  return Event2;
+})(Event || {});
 var AntetypeCursor = class {
   #injected;
   #module = null;
@@ -125,7 +110,7 @@ var AntetypeCursor = class {
     }
   }
   static subscriptions = {
-    [Event.MODULES]: "register",
+    [c.MODULES]: "register",
     [c.DRAW]: "draw"
   };
 };
@@ -133,6 +118,6 @@ var EnAntetypeCursor = AntetypeCursor;
 var src_default = EnAntetypeCursor;
 export {
   AntetypeCursor,
-  Event2 as Event,
+  Event,
   src_default as default
 };

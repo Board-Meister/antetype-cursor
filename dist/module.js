@@ -1,21 +1,6 @@
-// ../../tool/antetype/dist/index.js
-var Event = /* @__PURE__ */ ((Event22) => {
-  Event22["STRUCTURE"] = "antetype.structure";
-  Event22["MIDDLE"] = "antetype.structure.middle";
-  Event22["BAR_BOTTOM"] = "antetype.structure.bar.bottom";
-  Event22["CENTER"] = "antetype.structure.center";
-  Event22["COLUMN_LEFT"] = "antetype.structure.column.left";
-  Event22["COLUMN_RIGHT"] = "antetype.structure.column.right";
-  Event22["BAR_TOP"] = "antetype.structure.bar.top";
-  Event22["MODULES"] = "antetype.modules";
-  Event22["ACTIONS"] = "antetype.structure.column.left.actions";
-  Event22["PROPERTIES"] = "antetype.structure.column.left.properties";
-  return Event22;
-})(Event || {});
-
 // ../antetype-core/dist/index.js
-var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(i || {});
-var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2))(c || {});
+var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.COLUMN_RIGHT_AFTER = "antetype.structure.column.right.after", e.COLUMN_RIGHT_BEFORE = "antetype.structure.column.right.before", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e.SHOW_PROPERTIES = "antetype.structure.column.left.properties.show", e))(i || {});
+var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2.RECALC_FINISHED = "antetype.recalc.finished", r2.MODULES = "antetype.modules", r2))(c || {});
 var s = class {
   #t;
   #r = null;
@@ -38,13 +23,13 @@ var s = class {
   async init(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
     let { base: n, settings: o2 } = t.detail;
-    for (let a in o2) this.#e.setting.set(a, o2[a]);
-    let r2 = this.#e.meta.document;
-    r2.base = n;
+    for (let r2 in o2) this.#e.setting.set(r2, o2[r2]);
+    let a = this.#e.meta.document;
+    a.base = n;
     let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((a) => {
-      l.push(this.#e.font.load(a));
-    }), await Promise.all(l), r2.layout = await this.#e.view.recalculate(r2, r2.base), await this.#e.view.redraw(r2.layout), r2;
+    return (this.#e.setting.get("fonts") ?? []).forEach((r2) => {
+      l.push(this.#e.font.load(r2));
+    }), await Promise.all(l), a.layout = await this.#e.view.recalculate(a, a.base), await this.#e.view.redraw(a.layout), a;
   }
   async cloneDefinitions(t) {
     if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
@@ -55,11 +40,21 @@ var s = class {
 
 // src/shared.tsx
 var getSizeAndStart = (layer) => {
-  const size = layer.area?.size ?? layer.size;
-  const start = layer.area?.start ?? layer.start;
+  let w = 0, h = 0, x = 0, y = 0;
+  if (layer.size || layer.area?.size) {
+    ({ w, h } = layer.area?.size ?? layer.size);
+  }
+  if (layer.start || layer.area?.start) {
+    ({ x, y } = layer.area?.start ?? layer.start);
+  }
+  if (layer.hierarchy?.parent) {
+    const { start } = getSizeAndStart(layer.hierarchy.parent);
+    x += start.x;
+    y += start.y;
+  }
   return {
-    size,
-    start
+    size: { w, h },
+    start: { x, y }
   };
 };
 var isWithinLayer = (oX, oY, { x, y }, { w, h }) => oX >= x && oX <= w + x && oY >= y && oY <= h + y;
@@ -260,7 +255,7 @@ var AntetypeCursor = class {
     }
   }
   static subscriptions = {
-    [Event.MODULES]: "register",
+    [c.MODULES]: "register",
     [c.DRAW]: "draw"
   };
 };
@@ -365,8 +360,14 @@ function useSelection({
   let shown = [];
   let canMove = false;
   let skipUp = false;
+  let skipMove = true;
+  let accumulatedMoveX = 0;
+  let accumulatedMoveY = 0;
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
+  const settings = {
+    moveBufor: 5
+  };
   const resetSelected = () => {
     while (!selected.empty()) {
       selected.delete(selected.firstKey());
@@ -422,8 +423,21 @@ function useSelection({
       void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
     }
   };
+  const shouldSkipMove = (e) => {
+    if (!skipMove) {
+      return false;
+    }
+    const { origin: { movementX, movementY } } = e.detail;
+    accumulatedMoveX += movementX;
+    accumulatedMoveY += movementY;
+    if (Math.abs(accumulatedMoveX) > settings.moveBufor || Math.abs(accumulatedMoveY) > settings.moveBufor) {
+      skipMove = false;
+      return false;
+    }
+    return true;
+  };
   const startSelectionMove = (e) => {
-    if (e.defaultPrevented || !canMove) {
+    if (e.defaultPrevented || !canMove || shouldSkipMove(e)) {
       return;
     }
     const isFirstMotionAfterDown = !skipUp;
@@ -458,6 +472,9 @@ function useSelection({
     if (event.defaultPrevented) {
       return;
     }
+    accumulatedMoveX = 0;
+    accumulatedMoveY = 0;
+    skipMove = true;
     canMove = false;
     if (skipUp) {
       skipUp = false;
@@ -549,7 +566,7 @@ function useSelection({
 
 // src/useDraw.tsx
 function useDraw(ctx) {
-  const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
+  const drawSelectionRect = (x, y, w, h, fill) => {
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -557,9 +574,14 @@ function useDraw(ctx) {
     ctx.lineTo(x + w, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
-    ctx.strokeStyle = "#1e272e";
+    ctx.strokeStyle = fill;
     ctx.stroke();
     ctx.restore();
+  };
+  const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
+    drawSelectionRect(x - 2, y - 2, w + 4, h + 4, "#FFF");
+    drawSelectionRect(x - 1, y - 1, w + 2, h + 2, "#1e272e");
+    drawSelectionRect(x, y, w, h, "#FFF");
   };
   return {
     drawSelection

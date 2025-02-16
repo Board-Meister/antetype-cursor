@@ -4,12 +4,28 @@ import { selectionType } from "@src/module";
 import { IRequiredModules } from "@src/index";
 
 export const getSizeAndStart = (layer: IBaseDef): { size: ISize, start: IStart} => {
-  const size = layer.area?.size ?? layer.size;
-  const start = layer.area?.start ?? layer.start;
+  let w = 0,
+    h = 0,
+    x = 0,
+    y = 0
+  ;
+
+  if (layer.size || layer.area?.size) {
+    ({ w, h } = layer.area?.size ?? layer.size);
+  }
+  if (layer.start || layer.area?.start) {
+    ({ x, y } = layer.area?.start ?? layer.start);
+  }
+
+  if (layer.hierarchy?.parent) {
+    const { start } = getSizeAndStart(layer.hierarchy.parent);
+    x += start.x;
+    y += start.y;
+  }
 
   return {
-    size,
-    start,
+    size: { w, h },
+    start: { x, y },
   }
 }
 

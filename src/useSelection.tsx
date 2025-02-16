@@ -43,8 +43,14 @@ export default function useSelection(
   let shown: ISelectionDef[] = [];
   let canMove = false;
   let skipUp = false;
+  let skipMove = true;
+  let accumulatedMoveX = 0;
+  let accumulatedMoveY = 0;
   let seeThroughStackMap = IterableWeakMap<IBaseDef, true>();
   const core = modules.core;
+  const settings = {
+    moveBufor: 5,
+  }
 
   const resetSelected = (): void => {
     while (!selected.empty()) {
@@ -110,9 +116,25 @@ export default function useSelection(
     }
   }
 
+  const shouldSkipMove = (e: CustomEvent<MoveEvent>): boolean => {
+    if (!skipMove) {
+      return false;
+    }
+
+    const { origin: { movementX, movementY }, } = e.detail;
+    accumulatedMoveX += movementX;
+    accumulatedMoveY += movementY;
+    if (Math.abs(accumulatedMoveX) > settings.moveBufor || Math.abs(accumulatedMoveY) > settings.moveBufor) {
+      skipMove = false;
+      return false;
+    }
+
+    return true;
+  }
+
   // @TODO probably should be in different useCase - useMove
   const startSelectionMove = (e: CustomEvent<MoveEvent>): void => {
-    if (e.defaultPrevented || !canMove) {
+    if (e.defaultPrevented || !canMove || shouldSkipMove(e)) {
       return;
     }
 
@@ -156,6 +178,9 @@ export default function useSelection(
     if (event.defaultPrevented) {
       return;
     }
+    accumulatedMoveX = 0;
+    accumulatedMoveY = 0;
+    skipMove = true;
     canMove = false;
     if (skipUp) {
       skipUp = false;

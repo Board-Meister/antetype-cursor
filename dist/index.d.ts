@@ -139,22 +139,17 @@ declare class Minstrel {
 	component<T>(module: Module, suffix: string, scope?: Record<string, any>): React$1.FC<T>;
 	asset(module: Module, suffix: string): string;
 }
+declare type UnknownRecord = Record<symbol | string, unknown>;
 interface ModulesEvent {
-	modules: Modules;
+	modules: Record<string, Module$1>;
 	canvas: HTMLCanvasElement | null;
 }
 interface Module$1 {
 }
 interface Modules {
 	[key: string]: Module$1 | undefined;
-	system?: {
-		structure: {
-			reloadStructure: () => Promise<void>;
-			reload: VoidFunction;
-		};
-	};
+	core: ICore;
 }
-declare type UnknownRecord = Record<symbol | string, unknown>;
 interface DrawEvent {
 	element: IBaseDef;
 }
@@ -178,6 +173,7 @@ interface IHierarchy {
 }
 interface IBaseDef<T = never> {
 	[key: symbol | string]: unknown;
+	id?: string;
 	hierarchy?: IHierarchy;
 	start: IStart;
 	size: ISize;
@@ -193,8 +189,13 @@ interface IBaseDef<T = never> {
 interface IParentDef extends IBaseDef {
 	layout: Layout;
 }
+interface ISequence {
+	current: number;
+	increment: number;
+}
 interface IDocumentDef extends IParentDef {
 	type: "document";
+	sequence: ISequence;
 	base: Layout;
 	start: {
 		x: 0;
@@ -209,7 +210,7 @@ interface IFont {
 	url: string;
 	name: string;
 }
-interface ICore {
+interface ICore extends Module$1 {
 	meta: {
 		document: IDocumentDef;
 	};
