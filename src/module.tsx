@@ -25,7 +25,7 @@ export default function Cursor(
   const ctx = canvas.getContext('2d')!;
 
   const { drawSelection } = useDraw(ctx);
-  const { selected, showSelected, isSelected } = useSelection(params);
+  const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params);
   const { onDown, onUp, onMove } = useDetect(params, selected);
   useResize(params, showSelected);
   useDelete(params, selected);
@@ -38,6 +38,7 @@ export default function Cursor(
     drawSelection,
     selected,
     showSelected,
-    isSelected
+    isSelected,
+    resetSeeThroughStackMap,
   };
 }

@@ -534,7 +534,8 @@ function useSelection({
   return {
     selected,
     isSelected,
-    showSelected
+    showSelected,
+    resetSeeThroughStackMap
   };
 }
 
@@ -887,7 +888,7 @@ function Cursor(params) {
   }
   const ctx = canvas.getContext("2d");
   const { drawSelection } = useDraw(ctx);
-  const { selected, showSelected, isSelected } = useSelection(params);
+  const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params);
   const { onDown, onUp, onMove } = useDetect(params, selected);
   useResize(params, showSelected);
   useDelete(params, selected);
@@ -898,7 +899,8 @@ function Cursor(params) {
     drawSelection,
     selected,
     showSelected,
-    isSelected
+    isSelected,
+    resetSeeThroughStackMap
   };
 }
 export {

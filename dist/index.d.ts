@@ -311,6 +311,7 @@ export interface ICursor {
 	showSelected: () => void;
 	isSelected: (needle: IBaseDef) => IBaseDef | false;
 	drawSelection: (layer: IBaseDef) => void;
+	resetSeeThroughStackMap: VoidFunction;
 }
 export interface ICursorParams {
 	canvas: HTMLCanvasElement | null;

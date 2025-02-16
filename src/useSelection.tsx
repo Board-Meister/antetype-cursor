@@ -12,6 +12,7 @@ export interface ISelection {
   selected: IIterableWeakMap<IBaseDef, true>;
   showSelected: () => void;
   isSelected: (needle: IBaseDef) => IBaseDef|false;
+  resetSeeThroughStackMap: VoidFunction;
 }
 
 export type Selected = IIterableWeakMap<IBaseDef, true>;
@@ -281,5 +282,6 @@ export default function useSelection(
     selected,
     isSelected,
     showSelected,
+    resetSeeThroughStackMap,
   };
 }
