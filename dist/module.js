@@ -1,42 +1,13 @@
 // ../antetype-core/dist/index.js
-var i = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.COLUMN_RIGHT_AFTER = "antetype.structure.column.right.after", e.COLUMN_RIGHT_BEFORE = "antetype.structure.column.right.before", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e.SHOW_PROPERTIES = "antetype.structure.column.left.properties.show", e))(i || {});
-var c = ((r2) => (r2.INIT = "antetype.init", r2.CLOSE = "antetype.close", r2.DRAW = "antetype.draw", r2.CALC = "antetype.calc", r2.RECALC_FINISHED = "antetype.recalc.finished", r2.MODULES = "antetype.modules", r2))(c || {});
-var s = class {
-  #t;
-  #r = null;
-  #e = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(t) {
-    this.#t = t;
-  }
-  async #n(t, n) {
-    if (!this.#e) {
-      let o2 = this.#t.minstrel.getResourceUrl(this, "core.js");
-      this.#r = (await import(o2)).default, this.#e = this.#r({ canvas: n, modules: t, injected: this.#t });
-    }
-    return this.#e;
-  }
-  async register(t) {
-    let { modules: n, canvas: o2 } = t.detail;
-    n.core = await this.#n(n, o2);
-  }
-  async init(t) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    let { base: n, settings: o2 } = t.detail;
-    for (let r2 in o2) this.#e.setting.set(r2, o2[r2]);
-    let a = this.#e.meta.document;
-    a.base = n;
-    let l = [];
-    return (this.#e.setting.get("fonts") ?? []).forEach((r2) => {
-      l.push(this.#e.font.load(r2));
-    }), await Promise.all(l), a.layout = await this.#e.view.recalculate(a, a.base), await this.#e.view.redraw(a.layout), a;
-  }
-  async cloneDefinitions(t) {
-    if (!this.#e) throw new Error("Instance not loaded, trigger registration event first");
-    t.detail.element !== null && (t.detail.element = await this.#e.clone.definitions(t.detail.element));
-  }
-  static subscriptions = { [i.MODULES]: "register", "antetype.init": "init", "antetype.calc": [{ method: "cloneDefinitions", priority: -255 }] };
-};
+var Event = /* @__PURE__ */ ((Event22) => {
+  Event22["INIT"] = "antetype.init";
+  Event22["CLOSE"] = "antetype.close";
+  Event22["DRAW"] = "antetype.draw";
+  Event22["CALC"] = "antetype.calc";
+  Event22["RECALC_FINISHED"] = "antetype.recalc.finished";
+  Event22["MODULES"] = "antetype.modules";
+  return Event22;
+})(Event || {});
 
 // src/shared.tsx
 var getSizeAndStart = (layer) => {
@@ -59,8 +30,8 @@ var getSizeAndStart = (layer) => {
 };
 var isWithinLayer = (oX, oY, { x, y }, { w, h }) => oX >= x && oX <= w + x && oY >= y && oY <= h + y;
 var getLayerByPosition = (layout, x, y, skipSelection = true) => {
-  for (let i3 = layout.length - 1; i3 >= 0; i3--) {
-    const layer = layout[i3];
+  for (let i2 = layout.length - 1; i2 >= 0; i2--) {
+    const layer = layout[i2];
     if (skipSelection && layer.type === selectionType) {
       continue;
     }
@@ -77,8 +48,8 @@ var getLayerByPosition = (layout, x, y, skipSelection = true) => {
 };
 var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
   const clicked = [];
-  for (let i3 = layout.length - 1; i3 >= 0; i3--) {
-    const layer = layout[i3];
+  for (let i2 = layout.length - 1; i2 >= 0; i2--) {
+    const layer = layout[i2];
     if (skipSelection && layer.type === selectionType) {
       continue;
     }
@@ -255,14 +226,14 @@ var AntetypeCursor = class {
     }
   }
   static subscriptions = {
-    [c.MODULES]: "register",
-    [c.DRAW]: "draw"
+    [Event.MODULES]: "register",
+    [Event.DRAW]: "draw"
   };
 };
 
 // ../antetype-memento/dist/index.js
 var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
-var i2 = ((t) => (t.SAVE = "antetype.memento.save", t))(i2 || {});
+var i = ((t) => (t.SAVE = "antetype.memento.save", t))(i || {});
 var o = class {
   #e;
   #t = null;
@@ -272,12 +243,12 @@ var o = class {
     this.#e = t;
   }
   async register(t) {
-    let { modules: s2, canvas: n } = t.detail;
+    let { modules: s, canvas: n } = t.detail;
     if (!this.#t) {
       let a = this.#e.minstrel.getResourceUrl(this, "module.js");
       this.#t = (await import(a)).default;
     }
-    this.#r = s2.transform = this.#t({ canvas: n, modules: s2, injected: this.#e });
+    this.#r = s.transform = this.#t({ canvas: n, modules: s, injected: this.#e });
   }
   save(t) {
     this.#r && this.#r.addToStack(t.detail.state);
@@ -314,8 +285,8 @@ function IterableWeakMap() {
         arrKeys.splice(objectToIndex.get(key), 1);
         arrValues.splice(objectToIndex.get(key), 1);
         objectToIndex.delete(key);
-        arrKeys.forEach((value, i3) => {
-          objectToIndex.set(value, i3);
+        arrKeys.forEach((value, i2) => {
+          objectToIndex.set(value, i2);
         });
       }
       return true;
@@ -420,7 +391,7 @@ function useSelection({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
     }
   };
   const shouldSkipMove = (e) => {
@@ -464,6 +435,9 @@ function useSelection({
       saveSelectedPosition();
     }
     selected.keys().forEach((layer) => {
+      if (layer.hierarchy?.parent !== modules.core.meta.document) {
+        return;
+      }
       setNewPositionOnOriginal(modules, layer, movementX, movementY);
     });
     showSelected();
@@ -549,7 +523,7 @@ function useSelection({
       subscription: startSelectionMove
     },
     {
-      event: c.CLOSE,
+      event: Event.CLOSE,
       subscription: {
         method: () => {
           unregister();
@@ -601,6 +575,9 @@ function useResize({
     movement: null
   };
   const determinateCursorType = (layer, target) => {
+    if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
+      return "default";
+    }
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
     const bufferTop = 10, bufferBottom = 0;
@@ -667,6 +644,9 @@ function useResize({
   };
   const resize = (original, x, y) => {
     const layer = modules.core.clone.getClone(original);
+    if (layer.hierarchy?.parent !== modules.core.meta.document) {
+      return;
+    }
     if (mode !== 5 /* BOTTOM_RIGHT */ && mode !== 2 /* RIGHT */ && mode !== 1 /* BOTTOM */) {
       setNewPositionOnOriginal(
         modules,
@@ -722,7 +702,7 @@ function useResize({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
     }
   };
   const changeLayerSize = async (original, x, y) => {
@@ -840,7 +820,7 @@ function useResize({
       }
     },
     {
-      event: c.CLOSE,
+      event: Event.CLOSE,
       subscription: {
         method: () => {
           unregister();
@@ -891,7 +871,7 @@ function useDelete({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i2.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
     }
   };
   document.addEventListener("keyup", onKeyUp, false);

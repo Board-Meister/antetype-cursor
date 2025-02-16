@@ -64,6 +64,10 @@ export default function useResize(
     movement: null,
   };
   const determinateCursorType = (layer: ISelectionDef, target: IEvent): string => {
+    if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
+      return 'default';
+    }
+
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
     const bufferTop = 10,
@@ -153,6 +157,12 @@ export default function useResize(
 
   const resize = (original: IBaseDef, x: number, y: number): void => {
     const layer = modules.core.clone.getClone(original);
+    // @TODO at some point figure out how to apply group scoped sizes and allow resizing nested
+    //    elements
+    if (layer.hierarchy?.parent !== modules.core.meta.document) {
+      return;
+    }
+
     if (mode !== ResizeMode.BOTTOM_RIGHT && mode !== ResizeMode.RIGHT && mode !== ResizeMode.BOTTOM) {
       setNewPositionOnOriginal(
         modules,

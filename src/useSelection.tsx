@@ -167,6 +167,10 @@ export default function useSelection(
     }
 
     selected.keys().forEach(layer => {
+      // @TODO firgure out a wat to set group scoped sized when moving nested layers
+      if (layer.hierarchy?.parent !== modules.core.meta.document) {
+        return;
+      }
       // @TODO add event when layer was moved
       setNewPositionOnOriginal(modules, layer, movementX, movementY);
     });

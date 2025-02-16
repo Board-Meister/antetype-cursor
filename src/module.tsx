@@ -34,8 +34,6 @@ export default function Cursor(
   canvas.addEventListener('mouseup', onUp, false);
   canvas.addEventListener('mousemove', onMove, false);
 
-  // @TODO add deconstruct/unregister module so we can remove those events and herald registrations
-
   return {
     drawSelection,
     selected,
