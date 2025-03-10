@@ -15,7 +15,12 @@ export interface PositionEvent {
   y: number;
 }
 
+export interface CalcEvent {
+  values: Record<string, number>;
+}
+
 export enum Event {
+  CALC = 'antetype.cursor.calc',
   POSITION = 'antetype.cursor.position',
   DOWN = 'antetype.cursor.on.down',
   UP = 'antetype.cursor.on.up',
@@ -37,7 +42,28 @@ export interface ICursorParams {
   injected: IInjected,
 }
 
-interface IInjected extends Record<string, object> {
+export interface ICursorSettings {
+  draw?: {
+    disabled?: boolean;
+  }
+  select?: {
+    disabled?: boolean;
+  }
+  detect?: {
+    disabled?: boolean;
+    move?: {
+      skipSelection?: boolean;
+    }
+  }
+  resize?: {
+    disabled?: boolean;
+  }
+  delete?: {
+    disabled?: boolean;
+  }
+}
+
+export interface IInjected extends Record<string, object> {
   minstrel: Minstrel;
   herald: Herald;
 }
@@ -91,7 +117,7 @@ export class AntetypeCursor {
   }
 }
 
-export { DownEvent, UpEvent, MoveEvent, SlipEvent, IEvent, IEventDown, IEventHover } from "@src/useDetect";
+export type { DownEvent, UpEvent, MoveEvent, SlipEvent, IEvent, IEventDown, IEventHover } from "@src/useDetect";
 
 const EnAntetypeCursor: IInjectable<IInjected> & ISubscriber = AntetypeCursor;
 export default EnAntetypeCursor;

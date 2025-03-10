@@ -9,33 +9,9 @@ var Event = /* @__PURE__ */ ((Event22) => {
   return Event22;
 })(Event || {});
 
-// ../antetype-memento/dist/index.js
-var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
-var i = ((t) => (t.SAVE = "antetype.memento.save", t))(i || {});
-var o = class {
-  #e;
-  #t = null;
-  #r = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(t) {
-    this.#e = t;
-  }
-  async register(t) {
-    let { modules: s, canvas: n } = t.detail;
-    if (!this.#t) {
-      let a = this.#e.minstrel.getResourceUrl(this, "module.js");
-      this.#t = (await import(a)).default;
-    }
-    this.#r = s.transform = this.#t({ canvas: n, modules: s, injected: this.#e });
-  }
-  save(t) {
-    this.#r && this.#r.addToStack(t.detail.state);
-  }
-  static subscriptions = { [r.MODULES]: "register", "antetype.memento.save": "save" };
-};
-
 // src/index.tsx
 var Event2 = /* @__PURE__ */ ((Event3) => {
+  Event3["CALC"] = "antetype.cursor.calc";
   Event3["POSITION"] = "antetype.cursor.position";
   Event3["DOWN"] = "antetype.cursor.on.down";
   Event3["UP"] = "antetype.cursor.on.up";

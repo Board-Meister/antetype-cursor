@@ -9,7 +9,141 @@ var Event = /* @__PURE__ */ ((Event22) => {
   return Event22;
 })(Event || {});
 
+// src/index.tsx
+var AntetypeCursor = class {
+  #injected;
+  #module = null;
+  #instance = null;
+  static inject = {
+    minstrel: "boardmeister/minstrel",
+    herald: "boardmeister/herald"
+  };
+  inject(injections) {
+    this.#injected = injections;
+  }
+  async register(event) {
+    const { modules, canvas } = event.detail;
+    if (!this.#module) {
+      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
+      this.#module = (await import(module)).default;
+    }
+    this.#instance = modules.cursor = this.#module({
+      canvas,
+      modules,
+      injected: this.#injected
+    });
+  }
+  // @TODO there is not unregister method to remove all subscriptions
+  draw(event) {
+    if (!this.#instance) {
+      return;
+    }
+    const { element } = event.detail;
+    const typeToAction = {
+      selection: this.#instance.drawSelection
+    };
+    const el = typeToAction[element.type];
+    if (typeof el == "function") {
+      el(element);
+    }
+  }
+  static subscriptions = {
+    [Event.MODULES]: "register",
+    [Event.DRAW]: "draw"
+  };
+};
+
+// ../antetype-memento/dist/index.js
+var i = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e))(i || {});
+var a = ((t) => (t.SAVE = "antetype.memento.save", t))(a || {});
+var r = class {
+  #e;
+  #t = null;
+  #i = null;
+  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
+  inject(t) {
+    this.#e = t;
+  }
+  async register(t) {
+    let { modules: s, canvas: n } = t.detail;
+    if (!this.#t) {
+      let o = this.#e.minstrel.getResourceUrl(this, "module.js");
+      this.#t = (await import(o)).default;
+    }
+    this.#i = s.memento = this.#t({ canvas: n, modules: s, injected: this.#e });
+  }
+  save(t) {
+    this.#i && this.#i.addToStack(t.detail.state);
+  }
+  static subscriptions = { [i.MODULES]: "register", "antetype.memento.save": "save" };
+};
+
+// src/IterableWeakMap.tsx
+function IterableWeakMap() {
+  let weakMap = /* @__PURE__ */ new WeakMap(), arrKeys = [], arrValues = [], objectToIndex = /* @__PURE__ */ new WeakMap();
+  const _ = {
+    get [Symbol.toStringTag]() {
+      return "IterableWeakMap";
+    },
+    get: (key) => weakMap.get(key),
+    set: (key, value) => {
+      if (weakMap.has(key)) {
+        return _;
+      }
+      weakMap.set(key, value);
+      objectToIndex.set(key, arrKeys.length);
+      arrKeys.push(key);
+      arrValues.push(value);
+      return _;
+    },
+    delete: (key) => {
+      if (!weakMap.has(key) && objectToIndex.has(key)) {
+        return false;
+      }
+      if (weakMap.has(key)) {
+        weakMap.delete(key);
+      }
+      if (objectToIndex.has(key)) {
+        arrKeys.splice(objectToIndex.get(key), 1);
+        arrValues.splice(objectToIndex.get(key), 1);
+        objectToIndex.delete(key);
+        arrKeys.forEach((value, i2) => {
+          objectToIndex.set(value, i2);
+        });
+      }
+      return true;
+    },
+    first: () => arrValues[0] ?? null,
+    last: () => arrValues.slice(-1)[0] ?? null,
+    firstKey: () => arrKeys[0] ?? null,
+    lastKey: () => arrKeys.slice(-1)[0] ?? null,
+    has: (key) => weakMap.has(key),
+    keys: () => [...arrKeys],
+    values: () => [...arrValues],
+    empty: () => arrValues.length == 0,
+    reset: function() {
+      weakMap = /* @__PURE__ */ new WeakMap();
+      objectToIndex = /* @__PURE__ */ new WeakMap();
+      arrKeys = [];
+      arrValues = [];
+    },
+    clone: () => {
+      const cloned = IterableWeakMap();
+      arrKeys.forEach((key) => {
+        cloned.set(key, _.get(key));
+      });
+      return cloned;
+    }
+  };
+  return Object.freeze(_);
+}
+
 // src/shared.tsx
+var calc = (injected, toCalc) => {
+  const event = new CustomEvent("antetype.cursor.calc" /* CALC */, { detail: { values: toCalc } });
+  injected.herald.dispatchSync(event);
+  return event.detail.values;
+};
 var getSizeAndStart = (layer) => {
   let w = 0, h = 0, x = 0, y = 0;
   if (layer.size || layer.area?.size) {
@@ -92,230 +226,6 @@ var setNewPositionOnOriginal = (modules, layer, x, y) => {
   }
 };
 
-// src/useDetect.tsx
-function useDetect({
-  injected: { herald },
-  modules: { core }
-}, selected) {
-  const eventState = {
-    selected,
-    isDown: false,
-    wasMoved: false,
-    down: {
-      layers: [],
-      x: 0,
-      y: 0,
-      shiftKey: false,
-      ctrlKey: false
-    },
-    hover: {
-      layer: null,
-      x: 0,
-      y: 0
-    }
-  };
-  const calcPosition = async (x, y) => {
-    const event = new CustomEvent("antetype.cursor.position" /* POSITION */, { detail: { x, y } });
-    await herald.dispatch(event);
-    return event.detail;
-  };
-  const onDown = async (e) => {
-    eventState.isDown = true;
-    eventState.wasMoved = false;
-    let { layerX: x, layerY: y } = e;
-    const { shiftKey, ctrlKey } = e;
-    const layout = core.meta.document.layout;
-    ({ x, y } = await calcPosition(x, y));
-    eventState.down.x = x;
-    eventState.down.y = y;
-    eventState.down.shiftKey = shiftKey;
-    eventState.down.ctrlKey = ctrlKey;
-    eventState.down.layers = getAllClickedLayers(layout, x, y);
-    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, {
-      detail: {
-        origin: e,
-        target: eventState
-      },
-      cancelable: true
-    }));
-  };
-  const onUp = async (e) => {
-    eventState.isDown = false;
-    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, {
-      detail: { origin: e, target: eventState },
-      cancelable: true
-    }));
-    clearEventStateDown();
-    await onMove(e);
-  };
-  const onMove = async (e) => {
-    eventState.wasMoved = true;
-    const layout = core.meta.document.layout;
-    let { layerX: x, layerY: y } = e;
-    ({ x, y } = await calcPosition(x, y));
-    const newLayer = getLayerByPosition(layout, x, y, false);
-    eventState.hover.x = x;
-    eventState.hover.y = y;
-    if (newLayer !== eventState.hover.layer) {
-      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, {
-        detail: {
-          origin: e,
-          target: eventState,
-          from: eventState.hover.layer,
-          to: newLayer
-        },
-        cancelable: true
-      }));
-    }
-    eventState.hover.layer = newLayer;
-    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, {
-      detail: { origin: e, target: eventState },
-      cancelable: true
-    }));
-  };
-  const clearEventStateDown = () => {
-    eventState.down.x = 0;
-    eventState.down.y = 0;
-    eventState.down.shiftKey = false;
-    eventState.down.ctrlKey = false;
-    eventState.down.layers = [];
-  };
-  return {
-    onDown,
-    onUp,
-    onMove
-  };
-}
-
-// src/index.tsx
-var AntetypeCursor = class {
-  #injected;
-  #module = null;
-  #instance = null;
-  static inject = {
-    minstrel: "boardmeister/minstrel",
-    herald: "boardmeister/herald"
-  };
-  inject(injections) {
-    this.#injected = injections;
-  }
-  async register(event) {
-    const { modules, canvas } = event.detail;
-    if (!this.#module) {
-      const module = this.#injected.minstrel.getResourceUrl(this, "module.js");
-      this.#module = (await import(module)).default;
-    }
-    this.#instance = modules.cursor = this.#module({
-      canvas,
-      modules,
-      injected: this.#injected
-    });
-  }
-  // @TODO there is not unregister method to remove all subscriptions
-  draw(event) {
-    if (!this.#instance) {
-      return;
-    }
-    const { element } = event.detail;
-    const typeToAction = {
-      selection: this.#instance.drawSelection
-    };
-    const el = typeToAction[element.type];
-    if (typeof el == "function") {
-      el(element);
-    }
-  }
-  static subscriptions = {
-    [Event.MODULES]: "register",
-    [Event.DRAW]: "draw"
-  };
-};
-
-// ../antetype-memento/dist/index.js
-var r = ((e) => (e.STRUCTURE = "antetype.structure", e.MIDDLE = "antetype.structure.middle", e.BAR_BOTTOM = "antetype.structure.bar.bottom", e.CENTER = "antetype.structure.center", e.COLUMN_LEFT = "antetype.structure.column.left", e.COLUMN_RIGHT = "antetype.structure.column.right", e.BAR_TOP = "antetype.structure.bar.top", e.MODULES = "antetype.modules", e.ACTIONS = "antetype.structure.column.left.actions", e.PROPERTIES = "antetype.structure.column.left.properties", e))(r || {});
-var i = ((t) => (t.SAVE = "antetype.memento.save", t))(i || {});
-var o = class {
-  #e;
-  #t = null;
-  #r = null;
-  static inject = { minstrel: "boardmeister/minstrel", herald: "boardmeister/herald" };
-  inject(t) {
-    this.#e = t;
-  }
-  async register(t) {
-    let { modules: s, canvas: n } = t.detail;
-    if (!this.#t) {
-      let a = this.#e.minstrel.getResourceUrl(this, "module.js");
-      this.#t = (await import(a)).default;
-    }
-    this.#r = s.transform = this.#t({ canvas: n, modules: s, injected: this.#e });
-  }
-  save(t) {
-    this.#r && this.#r.addToStack(t.detail.state);
-  }
-  static subscriptions = { [r.MODULES]: "register", "antetype.memento.save": "save" };
-};
-
-// src/IterableWeakMap.tsx
-function IterableWeakMap() {
-  let weakMap = /* @__PURE__ */ new WeakMap(), arrKeys = [], arrValues = [], objectToIndex = /* @__PURE__ */ new WeakMap();
-  const _ = {
-    get [Symbol.toStringTag]() {
-      return "IterableWeakMap";
-    },
-    get: (key) => weakMap.get(key),
-    set: (key, value) => {
-      if (weakMap.has(key)) {
-        return _;
-      }
-      weakMap.set(key, value);
-      objectToIndex.set(key, arrKeys.length);
-      arrKeys.push(key);
-      arrValues.push(value);
-      return _;
-    },
-    delete: (key) => {
-      if (!weakMap.has(key) && objectToIndex.has(key)) {
-        return false;
-      }
-      if (weakMap.has(key)) {
-        weakMap.delete(key);
-      }
-      if (objectToIndex.has(key)) {
-        arrKeys.splice(objectToIndex.get(key), 1);
-        arrValues.splice(objectToIndex.get(key), 1);
-        objectToIndex.delete(key);
-        arrKeys.forEach((value, i2) => {
-          objectToIndex.set(value, i2);
-        });
-      }
-      return true;
-    },
-    first: () => arrValues[0] ?? null,
-    last: () => arrValues.slice(-1)[0] ?? null,
-    firstKey: () => arrKeys[0] ?? null,
-    lastKey: () => arrKeys.slice(-1)[0] ?? null,
-    has: (key) => weakMap.has(key),
-    keys: () => [...arrKeys],
-    values: () => [...arrValues],
-    empty: () => arrValues.length == 0,
-    reset: function() {
-      weakMap = /* @__PURE__ */ new WeakMap();
-      objectToIndex = /* @__PURE__ */ new WeakMap();
-      arrKeys = [];
-      arrValues = [];
-    },
-    clone: () => {
-      const cloned = IterableWeakMap();
-      arrKeys.forEach((key) => {
-        cloned.set(key, _.get(key));
-      });
-      return cloned;
-    }
-  };
-  return Object.freeze(_);
-}
-
 // src/useSelection.tsx
 function getLayerFromSelection(layer) {
   if (layer.type === selectionType) {
@@ -326,7 +236,7 @@ function getLayerFromSelection(layer) {
 function useSelection({
   modules,
   injected: { herald }
-}) {
+}, settings) {
   const selected = IterableWeakMap();
   let shown = [];
   let canMove = false;
@@ -336,9 +246,10 @@ function useSelection({
   let accumulatedMoveY = 0;
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
-  const settings = {
+  const innerSettings = {
     moveBufor: 5
   };
+  const isDisabled = () => settings.select?.disabled ?? false;
   const resetSelected = () => {
     while (!selected.empty()) {
       selected.delete(selected.firstKey());
@@ -391,7 +302,7 @@ function useSelection({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
     }
   };
   const shouldSkipMove = (e) => {
@@ -401,7 +312,7 @@ function useSelection({
     const { origin: { movementX, movementY } } = e.detail;
     accumulatedMoveX += movementX;
     accumulatedMoveY += movementY;
-    if (Math.abs(accumulatedMoveX) > settings.moveBufor || Math.abs(accumulatedMoveY) > settings.moveBufor) {
+    if (Math.abs(accumulatedMoveX) > innerSettings.moveBufor || Math.abs(accumulatedMoveY) > innerSettings.moveBufor) {
       skipMove = false;
       return false;
     }
@@ -413,7 +324,7 @@ function useSelection({
     }
     const isFirstMotionAfterDown = !skipUp;
     skipUp = true;
-    const { target: { down }, origin: { movementX, movementY } } = e.detail;
+    const { target: { down, hover: { mY, mX } } } = e.detail;
     if (0 === down.layers.length) {
       if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
@@ -438,7 +349,7 @@ function useSelection({
       if (layer.hierarchy?.parent !== modules.core.meta.document) {
         return;
       }
-      setNewPositionOnOriginal(modules, layer, movementX, movementY);
+      setNewPositionOnOriginal(modules, layer, mX, mY);
     });
     showSelected();
   };
@@ -512,15 +423,30 @@ function useSelection({
   const unregister = herald.batch([
     {
       event: "antetype.cursor.on.down" /* DOWN */,
-      subscription: enableMove
+      subscription: (e) => {
+        if (isDisabled()) {
+          return;
+        }
+        enableMove(e);
+      }
     },
     {
       event: "antetype.cursor.on.up" /* UP */,
-      subscription: selectionMouseUp
+      subscription: (e) => {
+        if (isDisabled()) {
+          return;
+        }
+        selectionMouseUp(e);
+      }
     },
     {
       event: "antetype.cursor.on.move" /* MOVE */,
-      subscription: startSelectionMove
+      subscription: (e) => {
+        if (isDisabled()) {
+          return;
+        }
+        startSelectionMove(e);
+      }
     },
     {
       event: Event.CLOSE,
@@ -539,9 +465,138 @@ function useSelection({
   };
 }
 
+// src/useDetect.tsx
+function useDetect({
+  injected,
+  modules: { core },
+  canvas
+}, selected, settings) {
+  const { herald } = injected;
+  const eventState = {
+    selected,
+    isDown: false,
+    wasMoved: false,
+    down: {
+      layers: [],
+      x: 0,
+      y: 0,
+      shiftKey: false,
+      ctrlKey: false
+    },
+    hover: {
+      layer: null,
+      x: 0,
+      y: 0,
+      mX: 0,
+      mY: 0
+    }
+  };
+  const isDisabled = () => settings.detect?.disabled ?? false;
+  const skipSelectionOnMove = () => settings.detect?.move?.skipSelection ?? false;
+  const calcPosition = async (x, y) => {
+    const boundingBox = canvas.getBoundingClientRect();
+    x -= boundingBox.left;
+    y -= boundingBox.top;
+    const event = new CustomEvent("antetype.cursor.position" /* POSITION */, { detail: { x, y } });
+    await herald.dispatch(event);
+    return event.detail;
+  };
+  const onDown = async (e) => {
+    if (isDisabled()) {
+      return;
+    }
+    eventState.isDown = true;
+    eventState.wasMoved = false;
+    let { clientX: x, clientY: y } = e;
+    const { shiftKey, ctrlKey } = e;
+    const layout = core.meta.document.layout;
+    ({ x, y } = await calcPosition(x, y));
+    eventState.down.x = x;
+    eventState.down.y = y;
+    eventState.down.shiftKey = shiftKey;
+    eventState.down.ctrlKey = ctrlKey;
+    eventState.down.layers = getAllClickedLayers(layout, x, y);
+    void herald.dispatch(new CustomEvent("antetype.cursor.on.down" /* DOWN */, {
+      detail: {
+        origin: e,
+        target: eventState
+      },
+      cancelable: true
+    }));
+  };
+  const onUp = async (e) => {
+    if (isDisabled()) {
+      return;
+    }
+    eventState.isDown = false;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.up" /* UP */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
+    clearEventStateDown();
+    await onMove(e);
+  };
+  const onMove = async (e) => {
+    if (isDisabled()) {
+      return;
+    }
+    eventState.wasMoved = true;
+    const layout = core.meta.document.layout;
+    let { clientX: x, clientY: y, movementX, movementY } = e;
+    ({ x, y } = await calcPosition(x, y));
+    ({ movementX, movementY } = calc(injected, { movementX, movementY }));
+    const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
+    eventState.hover.x = x;
+    eventState.hover.y = y;
+    eventState.hover.mY = movementY;
+    eventState.hover.mX = movementX;
+    if (newLayer !== eventState.hover.layer) {
+      await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, {
+        detail: {
+          origin: e,
+          target: eventState,
+          from: eventState.hover.layer,
+          to: newLayer
+        },
+        cancelable: true
+      }));
+    }
+    eventState.hover.layer = newLayer;
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, {
+      detail: { origin: e, target: eventState },
+      cancelable: true
+    }));
+  };
+  const clearEventStateDown = () => {
+    eventState.down.x = 0;
+    eventState.down.y = 0;
+    eventState.down.shiftKey = false;
+    eventState.down.ctrlKey = false;
+    eventState.down.layers = [];
+  };
+  const onOut = async (e) => {
+    await herald.dispatch(new CustomEvent("antetype.cursor.on.slip" /* SLIP */, {
+      detail: {
+        origin: e,
+        target: eventState,
+        from: eventState.hover.layer,
+        to: null
+      },
+      cancelable: true
+    }));
+    eventState.hover.layer = null;
+  };
+  return {
+    onDown,
+    onUp,
+    onMove,
+    onOut
+  };
+}
+
 // src/useDraw.tsx
-function useDraw(ctx) {
-  const drawSelectionRect = (x, y, w, h, fill) => {
+function useDraw(injected, ctx) {
+  const drawSelectionRect = (x, y, w, h, thickness, fill) => {
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -549,14 +604,30 @@ function useDraw(ctx) {
     ctx.lineTo(x + w, y + h);
     ctx.lineTo(x, y + h);
     ctx.closePath();
+    ctx.lineWidth = thickness;
     ctx.strokeStyle = fill;
     ctx.stroke();
     ctx.restore();
   };
   const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
-    drawSelectionRect(x - 2, y - 2, w + 4, h + 4, "#FFF");
-    drawSelectionRect(x - 1, y - 1, w + 2, h + 2, "#1e272e");
-    drawSelectionRect(x, y, w, h, "#FFF");
+    const unit = calc(injected, { unit: 1 }).unit;
+    drawSelectionRect(
+      x - unit * 2,
+      y - unit * 2,
+      w + unit * 4,
+      h + unit * 4,
+      unit,
+      "#FFF"
+    );
+    drawSelectionRect(
+      x - unit,
+      y - unit,
+      w + unit * 2,
+      h + unit * 2,
+      unit,
+      "#1e272e"
+    );
+    drawSelectionRect(x, y, w, h, unit, "#FFF");
   };
   return {
     drawSelection
@@ -565,23 +636,25 @@ function useDraw(ctx) {
 
 // src/useResize.tsx
 function useResize({
-  injected: { herald },
+  injected,
   canvas,
   modules
-}, showSelected) {
+}, showSelected, settings) {
+  const { herald } = injected;
   let mode = 8 /* NONE */, disableResize = false, resizeInProgress = false, saved = false;
   const eventSnapshot = {
     waiting: false,
     layout: null,
     movement: null
   };
+  const isDisabled = () => settings.resize?.disabled ?? false;
   const determinateCursorType = (layer, target) => {
     if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
       return "default";
     }
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
-    const bufferTop = 10, bufferBottom = 0;
+    const bufferTop = calc(injected, { bufferTop: 10 }).bufferTop, bufferBottom = 0;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom, right = x <= sX + bufferBottom + w && x >= sX - bufferTop + w, bottom = y <= sY + bufferBottom + h && y >= sY - bufferTop + h, left = x <= sX + bufferTop && x >= sX - bufferBottom;
     if (top && left || bottom && right) {
       mode = top && left ? 6 /* TOP_LEFT */ : 5 /* BOTTOM_RIGHT */;
@@ -621,12 +694,12 @@ function useResize({
     resizeSelected(e);
   };
   const resizeSelected = (e) => {
-    const { target, origin } = e.detail;
+    const { target } = e.detail;
     const layers = target.selected.keys();
     if (0 === layers.length || 8 /* NONE */ === mode || !target.isDown) {
       return;
     }
-    let { movementY: y, movementX: x } = origin;
+    let { hover: { mX: x, mY: y } } = target;
     if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
     if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
     if (resizeInProgress) {
@@ -703,7 +776,7 @@ function useResize({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
     }
   };
   const changeLayerSize = async (original, x, y) => {
@@ -796,27 +869,47 @@ function useResize({
     {
       event: "antetype.cursor.on.move" /* MOVE */,
       subscription: {
-        method: handleMove,
+        method: (e) => {
+          if (isDisabled()) {
+            return;
+          }
+          handleMove(e);
+        },
         priority: -10
       }
     },
     {
       event: "antetype.cursor.on.slip" /* SLIP */,
       subscription: {
-        method: revertCursorToDefault
+        method: (e) => {
+          if (isDisabled()) {
+            return;
+          }
+          revertCursorToDefault(e);
+        }
       }
     },
     {
       event: "antetype.cursor.on.down" /* DOWN */,
       subscription: {
-        method: handleDown,
+        method: (e) => {
+          if (isDisabled()) {
+            return;
+          }
+          handleDown(e);
+        },
         priority: -10
       }
     },
     {
       event: "antetype.cursor.on.up" /* UP */,
       subscription: {
-        method: handleUpAfterResize,
+        method: (e) => {
+          if (isDisabled()) {
+            return;
+          }
+          handleUpAfterResize(e);
+        },
         priority: -10
       }
     },
@@ -836,10 +929,11 @@ function useDelete({
   modules,
   injected: { herald },
   canvas
-}, selected) {
+}, selected, settings) {
   canvas.setAttribute("tabindex", "0");
+  const isDisabled = () => settings.delete?.disabled ?? false;
   const onKeyUp = async (e) => {
-    if (e.target !== canvas && e.target !== document.body) {
+    if (e.target !== canvas && e.target !== document.body || isDisabled()) {
       return;
     }
     if (e.code === "Delete" || e.code === "Backspace") {
@@ -872,7 +966,7 @@ function useDelete({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(i.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
     }
   };
   document.addEventListener("keyup", onKeyUp, false);
@@ -882,19 +976,35 @@ function useDelete({
 // src/module.tsx
 var selectionType = "selection";
 function Cursor(params) {
-  const { canvas } = params;
+  const { canvas, injected, modules } = params;
   if (!canvas) {
     throw new Error("[Antetype Cursor] Canvas is empty!");
   }
   const ctx = canvas.getContext("2d");
-  const { drawSelection } = useDraw(ctx);
-  const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params);
-  const { onDown, onUp, onMove } = useDetect(params, selected);
-  useResize(params, showSelected);
-  useDelete(params, selected);
+  if (!modules.core.setting.has("cursor")) {
+    modules.core.setting.set("cursor", {});
+  }
+  const settings = new Proxy({}, {
+    get(target, prop) {
+      target;
+      return modules.core.setting.get("cursor")[prop];
+    },
+    set(obj, prop, value) {
+      obj;
+      const settings2 = modules.core.setting.get("cursor");
+      settings2[prop] = value;
+      return true;
+    }
+  });
+  const { drawSelection } = useDraw(injected, ctx);
+  const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params, settings);
+  const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
+  useResize(params, showSelected, settings);
+  useDelete(params, selected, settings);
   canvas.addEventListener("mousedown", onDown, false);
   canvas.addEventListener("mouseup", onUp, false);
   canvas.addEventListener("mousemove", onMove, false);
+  canvas.addEventListener("mouseout", onOut, false);
   return {
     drawSelection,
     selected,

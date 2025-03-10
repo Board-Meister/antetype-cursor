@@ -1,7 +1,15 @@
 import type { Layout, IBaseDef, IStart, ISize } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { selectionType } from "@src/module";
-import { IRequiredModules } from "@src/index";
+import type { CalcEvent, IInjected, IRequiredModules } from "@src/index";
+import { Event } from "@src/index";
+
+export const calc = <T extends Record<string, number>>(injected: IInjected, toCalc: T): T => {
+  const event = new CustomEvent<CalcEvent>(Event.CALC, { detail: { values: toCalc } });
+  injected.herald.dispatchSync(event)
+
+  return event.detail.values as T;
+}
 
 export const getSizeAndStart = (layer: IBaseDef): { size: ISize, start: IStart} => {
   let w = 0,

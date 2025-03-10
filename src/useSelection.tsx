@@ -1,4 +1,4 @@
-import { Event, ICursorParams } from "@src/index";
+import { Event, ICursorParams, ICursorSettings } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
@@ -38,7 +38,8 @@ export default function useSelection(
   {
     modules,
     injected: { herald }
-  }: ICursorParams
+  }: ICursorParams,
+  settings: ICursorSettings,
 ): ISelection {
   const selected = IterableWeakMap<IBaseDef, true>();
   let shown: ISelectionDef[] = [];
@@ -49,9 +50,11 @@ export default function useSelection(
   let accumulatedMoveY = 0;
   let seeThroughStackMap = IterableWeakMap<IBaseDef, true>();
   const core = modules.core;
-  const settings = {
+  const innerSettings = {
     moveBufor: 5,
   }
+
+  const isDisabled = () =>  settings.select?.disabled ?? false;
 
   const resetSelected = (): void => {
     while (!selected.empty()) {
@@ -125,7 +128,10 @@ export default function useSelection(
     const { origin: { movementX, movementY }, } = e.detail;
     accumulatedMoveX += movementX;
     accumulatedMoveY += movementY;
-    if (Math.abs(accumulatedMoveX) > settings.moveBufor || Math.abs(accumulatedMoveY) > settings.moveBufor) {
+    if (
+      Math.abs(accumulatedMoveX) > innerSettings.moveBufor
+      || Math.abs(accumulatedMoveY) > innerSettings.moveBufor
+    ) {
       skipMove = false;
       return false;
     }
@@ -142,7 +148,7 @@ export default function useSelection(
     const isFirstMotionAfterDown = !skipUp;
 
     skipUp = true;
-    const { target: { down }, origin: { movementX, movementY }, } = e.detail;
+    const { target: { down, hover: { mY, mX } } } = e.detail;
     if (0 === down.layers.length) {
       if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
@@ -173,7 +179,7 @@ export default function useSelection(
         return;
       }
       // @TODO add event when layer was moved
-      setNewPositionOnOriginal(modules, layer, movementX, movementY);
+      setNewPositionOnOriginal(modules, layer, mX, mY);
     });
 
     showSelected();
@@ -260,15 +266,33 @@ export default function useSelection(
   const unregister = herald.batch([
     {
       event:Event.DOWN,
-      subscription: enableMove,
+      subscription: e => {
+        if (isDisabled()) {
+          return;
+        }
+
+        enableMove(e)
+      },
     },
     {
       event:Event.UP,
-      subscription: selectionMouseUp,
+      subscription: e => {
+        if (isDisabled()) {
+          return;
+        }
+
+        selectionMouseUp(e)
+      },
     },
     {
       event:Event.MOVE,
-      subscription: startSelectionMove,
+      subscription: e => {
+        if (isDisabled()) {
+          return;
+        }
+
+        startSelectionMove(e)
+      },
     },
     {
       event: CoreEvent.CLOSE,

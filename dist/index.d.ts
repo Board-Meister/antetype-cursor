@@ -152,6 +152,9 @@ interface Modules {
 interface DrawEvent {
 	element: IBaseDef;
 }
+interface ISettings {
+	[key: string | number | symbol]: unknown;
+}
 declare type XValue = number;
 declare type YValue = XValue;
 interface IStart {
@@ -199,6 +202,7 @@ interface IDocumentDef extends IParentDef {
 		w: 0;
 		h: 0;
 	};
+	settings: ISettings;
 }
 interface IFont {
 	url: string;
@@ -273,6 +277,8 @@ export interface IEventHover {
 	layer: IBaseDef | null;
 	x: number;
 	y: number;
+	mY: number;
+	mX: number;
 }
 export interface IEvent {
 	isDown: boolean;
@@ -299,7 +305,11 @@ export interface PositionEvent {
 	x: number;
 	y: number;
 }
+export interface CalcEvent {
+	values: Record<string, number>;
+}
 declare enum Event$1 {
+	CALC = "antetype.cursor.calc",
 	POSITION = "antetype.cursor.position",
 	DOWN = "antetype.cursor.on.down",
 	UP = "antetype.cursor.on.up",
@@ -318,7 +328,27 @@ export interface ICursorParams {
 	modules: IRequiredModules;
 	injected: IInjected;
 }
-interface IInjected extends Record<string, object> {
+export interface ICursorSettings {
+	draw?: {
+		disabled?: boolean;
+	};
+	select?: {
+		disabled?: boolean;
+	};
+	detect?: {
+		disabled?: boolean;
+		move?: {
+			skipSelection?: boolean;
+		};
+	};
+	resize?: {
+		disabled?: boolean;
+	};
+	delete?: {
+		disabled?: boolean;
+	};
+}
+export interface IInjected extends Record<string, object> {
 	minstrel: Minstrel;
 	herald: Herald;
 }

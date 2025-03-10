@@ -2,10 +2,10 @@ import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
-import { Event, ICursorParams } from "@src/index";
+import { Event, ICursorParams, ICursorSettings } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
-import { isEditable, setNewPositionOnOriginal } from "@src/shared";
+import { calc, isEditable, setNewPositionOnOriginal } from "@src/shared";
 import { getLayerFromSelection } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
@@ -47,12 +47,14 @@ interface IEventSnapshot {
 
 export default function useResize(
   {
-    injected: { herald },
+    injected,
     canvas,
     modules,
   }: ICursorParams,
   showSelected: VoidFunction,
+  settings: ICursorSettings,
 ): void {
+  const { herald } = injected;
   let mode = ResizeMode.NONE,
     disableResize = false,
     resizeInProgress = false,
@@ -63,6 +65,7 @@ export default function useResize(
     layout: null,
     movement: null,
   };
+  const isDisabled = () => settings.resize?.disabled ?? false;
   const determinateCursorType = (layer: ISelectionDef, target: IEvent): string => {
     if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
       return 'default';
@@ -70,8 +73,8 @@ export default function useResize(
 
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
-    const bufferTop = 10,
-      // Buffer bottom doesn't matter as we don't detect that cursor is near layer, we detect when he enters it
+    // Buffer bottom doesn't matter as we don't detect that cursor is near layer, we detect when he enters it
+    const bufferTop = calc(injected, { bufferTop: 10 }).bufferTop,
       bufferBottom = 0
     ;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom,
@@ -128,13 +131,13 @@ export default function useResize(
   }
 
   const resizeSelected = (e: CustomEvent<MoveEvent>): void => {
-    const { target, origin } = e.detail;
+    const { target } = e.detail;
     const layers = target.selected.keys();
     if (0 === layers.length || ResizeMode.NONE === mode || !target.isDown) {
       return;
     }
 
-    let { movementY: y, movementX: x } = origin;
+    let { hover: { mX: x, mY: y } } = target;
     if (mode === ResizeMode.LEFT || mode === ResizeMode.RIGHT ) y = 0;
     if (mode === ResizeMode.TOP  || mode === ResizeMode.BOTTOM) x = 0;
 
@@ -330,27 +333,47 @@ export default function useResize(
     {
       event: Event.MOVE,
       subscription: {
-        method: handleMove,
+        method: e => {
+          if (isDisabled()) {
+            return;
+          }
+          handleMove(e);
+        },
         priority: -10,
       },
     },
     {
       event: Event.SLIP,
       subscription: {
-        method: revertCursorToDefault,
+        method: e => {
+          if (isDisabled()) {
+            return;
+          }
+          revertCursorToDefault(e);
+        },
       },
     },
     {
       event: Event.DOWN,
       subscription: {
-        method: handleDown,
+        method: e => {
+          if (isDisabled()) {
+            return;
+          }
+          handleDown(e);
+        },
         priority: -10,
       },
     },
     {
       event: Event.UP,
       subscription: {
-        method: handleUpAfterResize,
+        method: e => {
+          if (isDisabled()) {
+            return;
+          }
+          handleUpAfterResize(e);
+        },
         priority: -10,
       },
     },

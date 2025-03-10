@@ -1,6 +1,6 @@
 import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
-import { ICursorParams } from "@src/index";
+import { ICursorParams, ICursorSettings } from "@src/index";
 import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
@@ -17,10 +17,12 @@ export default function useDelete(
     canvas,
   }: ICursorParams,
   selected: Selected,
+  settings: ICursorSettings,
 ): IDelete {
   canvas!.setAttribute('tabindex', '0');
+  const isDisabled = () => settings.delete?.disabled ?? false;
   const onKeyUp = async (e: KeyboardEvent): Promise<void> => {
-    if (e.target !== canvas && e.target !== document.body) {
+    if (e.target !== canvas && e.target !== document.body || isDisabled()) {
       return;
     }
 
