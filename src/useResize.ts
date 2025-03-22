@@ -141,6 +141,11 @@ export default function useResize(
     if (mode === ResizeMode.LEFT || mode === ResizeMode.RIGHT ) y = 0;
     if (mode === ResizeMode.TOP  || mode === ResizeMode.BOTTOM) x = 0;
 
+    /** @TODO move to event, so we can decouple workspace from cursor */
+    const scale = (modules.workspace as IWorkspace).getScale();
+    x /= scale;
+    y /= scale;
+
     if (resizeInProgress) {
       eventSnapshot.waiting = true;
       eventSnapshot.movement = { x, y };

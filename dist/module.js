@@ -341,7 +341,8 @@ function useSelection({
       if (layer.hierarchy?.parent !== modules.core.meta.document) {
         return;
       }
-      setNewPositionOnOriginal(modules, layer, mX, mY);
+      const scale = modules.workspace.getScale();
+      setNewPositionOnOriginal(modules, layer, mX / scale, mY / scale);
     });
     showSelected();
   };
@@ -407,7 +408,6 @@ function useSelection({
     core.view.redraw();
   };
   const enableMove = (e) => {
-    console.log(e);
     if (e.defaultPrevented || e.detail.origin.button !== 0) {
       return;
     }
@@ -694,6 +694,9 @@ function useResize({
     let { hover: { mX: x, mY: y } } = target;
     if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
     if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
+    const scale = modules.workspace.getScale();
+    x /= scale;
+    y /= scale;
     if (resizeInProgress) {
       eventSnapshot.waiting = true;
       eventSnapshot.movement = { x, y };

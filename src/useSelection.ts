@@ -7,6 +7,7 @@ import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
 import { ISelectionDef, selectionType } from "@src/module";
 import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
 import { MoveEvent, UpEvent } from "@src/useDetect";
+import type { IWorkspace } from "@boardmeister/antetype-workspace";
 
 export interface ISelection {
   selected: IIterableWeakMap<IBaseDef, true>;
@@ -178,8 +179,10 @@ export default function useSelection(
       if (layer.hierarchy?.parent !== modules.core.meta.document) {
         return;
       }
+      /** @TODO move to event, so we can decouple workspace from cursor */
+      const scale = (modules.workspace as IWorkspace).getScale();
       // @TODO add event when layer was moved
-      setNewPositionOnOriginal(modules, layer, mX, mY);
+      setNewPositionOnOriginal(modules, layer, mX/scale, mY/scale);
     });
 
     showSelected();
@@ -257,8 +260,6 @@ export default function useSelection(
   }
 
   const enableMove = (e: CustomEvent<MoveEvent>): void => {
-    console.log(e);
-    
     if (e.defaultPrevented || e.detail.origin.button !== 0) {
       return;
     }
