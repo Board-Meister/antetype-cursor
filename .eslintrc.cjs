@@ -12,7 +12,7 @@ module.exports = {
     project: ['./tsconfig.json'],
     tsconfigRootDir: __dirname,
   },
-  ignorePatterns: ['dist', '.eslintrc.cjs', '*.config.jsm', '*.config.js'],
+  ignorePatterns: ['dist', '.eslintrc.cjs', '*.config.jsm', '*.config.mjs', '*.config.js'],
   parser: '@typescript-eslint/parser',
   rules: {
     'one-var': 'off',

@@ -65,7 +65,7 @@ export default function useResize(
     layout: null,
     movement: null,
   };
-  const isDisabled = () => settings.resize?.disabled ?? false;
+  const isDisabled = (): boolean => settings.resize?.disabled ?? false;
   const determinateCursorType = (layer: ISelectionDef, target: IEvent): string => {
     if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
       return 'default';

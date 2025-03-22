@@ -152,9 +152,49 @@ interface Modules {
 interface DrawEvent {
 	element: IBaseDef;
 }
+interface ISettingFont {
+	name: string;
+	url: string;
+}
 interface ISettings {
 	[key: string | number | symbol]: unknown;
+	core?: {
+		fonts?: ISettingFont[];
+	};
 }
+interface ISettingsDefinitionFieldGeneric {
+	label: string;
+	type: string;
+}
+type SettingsDefinitionField = ISettingsDefinitionFieldInput | ISettingsDefinitionFieldContainer | ISettingsDefinitionFieldGeneric;
+interface ISettingsDefinitionFieldContainer extends ISettingsDefinitionFieldGeneric {
+	type: "container";
+	fields: SettingsDefinitionField[][];
+	collapsable?: boolean;
+}
+type ISettingsInputValue = string | number | string[] | number[] | Record<string, any> | Record<string, any>[] | undefined;
+interface ISettingsDefinitionFieldInput extends ISettingsDefinitionFieldGeneric {
+	name: string;
+	value: ISettingsInputValue;
+}
+interface ISettingsDefinitionTab {
+	label: string;
+	icon?: string;
+	fields: SettingsDefinitionField[][];
+}
+interface ISettingsDefinition {
+	details: {
+		label: string;
+		icon?: string;
+	};
+	name: string;
+	tabs: ISettingsDefinitionTab[];
+}
+interface ISettingEvent {
+	settings: ISettingsDefinition[];
+	additional: Record<string, any>;
+}
+type SettingsEvent = CustomEvent<ISettingEvent>;
 declare type XValue = number;
 declare type YValue = XValue;
 interface IStart {
@@ -246,6 +286,8 @@ interface ICore extends Module$1 {
 		set: (name: string, value: unknown) => void;
 		get: <T = unknown>(name: string) => T | null;
 		has: (name: string) => boolean;
+		retrieveSettingsDefinition: (additional?: Record<string, any>) => Promise<ISettingsDefinition[]>;
+		setSettingsDefinition: (e: SettingsEvent) => void;
 	};
 }
 type Layout = (IBaseDef | IParentDef)[];

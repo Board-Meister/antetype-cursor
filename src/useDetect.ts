@@ -78,8 +78,8 @@ export default function useDetect(
     },
   }
 
-  const isDisabled = () => settings.detect?.disabled ?? false;
-  const skipSelectionOnMove = () => settings.detect?.move?.skipSelection ?? false;
+  const isDisabled = (): boolean => settings.detect?.disabled ?? false;
+  const skipSelectionOnMove = (): boolean => settings.detect?.move?.skipSelection ?? false;
 
   const calcPosition = async (x: number, y: number): Promise<{ x: number, y: number }> => {
     // if this operation will turn to be too expensive check this out https://stackoverflow.com/a/36860652/11495586

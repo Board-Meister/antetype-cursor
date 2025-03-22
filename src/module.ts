@@ -1,4 +1,6 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { ICursor, ICursorParams } from "@src/index";
+import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IBaseDef } from "@boardmeister/antetype-core"
 import useSelection from "@src/useSelection";
 import useDetect from "@src/useDetect";
@@ -20,7 +22,7 @@ export default function Cursor(
 ): ICursor {
   const { canvas, injected, modules } = params;
   if (!canvas) {
-    throw new Error('[Antetype Cursor] Canvas is empty!')
+    throw new Error('[Antetype Cursor] Canvas is empty!');
   }
   const ctx = canvas.getContext('2d')!;
 
@@ -50,6 +52,14 @@ export default function Cursor(
   canvas.addEventListener('mouseup', onUp, false);
   canvas.addEventListener('mousemove', onMove, false);
   canvas.addEventListener('mouseout', onOut, false);
+
+  const unregister = injected.herald.register(CoreEvent.CLOSE, () => {
+    canvas.removeEventListener('mousedown', onDown, false);
+    canvas.removeEventListener('mouseup', onUp, false);
+    canvas.removeEventListener('mousemove', onMove, false);
+    canvas.removeEventListener('mouseout', onOut, false);
+    unregister();
+  });
 
   return {
     drawSelection,

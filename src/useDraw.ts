@@ -39,7 +39,7 @@ export default function useDraw(injected: IInjected, ctx: CanvasRenderingContext
       unit,
       '#1e272e'
     ); // Middle ring
-    drawSelectionRect(x, y, w, h, unit, '#FFF'); // Inner ring
+    // drawSelectionRect(x, y, w, h, unit, '#FFF'); // Inner ring
   }
 
   return {

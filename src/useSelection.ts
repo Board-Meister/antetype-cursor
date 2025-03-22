@@ -54,7 +54,7 @@ export default function useSelection(
     moveBufor: 5,
   }
 
-  const isDisabled = () =>  settings.select?.disabled ?? false;
+  const isDisabled = (): boolean => settings.select?.disabled ?? false;
 
   const resetSelected = (): void => {
     while (!selected.empty()) {
@@ -186,7 +186,7 @@ export default function useSelection(
   }
 
   const selectionMouseUp = (event: CustomEvent<UpEvent>): void => {
-    if (event.defaultPrevented) {
+    if (event.defaultPrevented || event.detail.origin.button !== 0) {
       return;
     }
     accumulatedMoveX = 0;
@@ -257,7 +257,9 @@ export default function useSelection(
   }
 
   const enableMove = (e: CustomEvent<MoveEvent>): void => {
-    if (e.defaultPrevented) {
+    console.log(e);
+    
+    if (e.defaultPrevented || e.detail.origin.button !== 0) {
       return;
     }
     canMove = true;
@@ -271,7 +273,7 @@ export default function useSelection(
           return;
         }
 
-        enableMove(e)
+        enableMove(e as CustomEvent<MoveEvent>)
       },
     },
     {
