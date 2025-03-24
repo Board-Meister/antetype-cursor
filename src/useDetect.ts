@@ -20,6 +20,7 @@ export interface IEventDown {
 
 export interface IEventHover {
   layer: IBaseDef|null;
+  deep: IBaseDef|null;
   x: number;
   y: number;
   // Movement
@@ -71,6 +72,7 @@ export default function useDetect(
     },
     hover: {
       layer: null,
+      deep: null,
       x: 0,
       y: 0,
       mX: 0,
@@ -141,6 +143,8 @@ export default function useDetect(
     ({ x, y } = await calcPosition(x, y));
     ({ movementX, movementY } = calc(injected, { movementX, movementY }));
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
+    const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
+
     eventState.hover.x = x;
     eventState.hover.y = y;
     eventState.hover.mY = movementY;
@@ -158,6 +162,7 @@ export default function useDetect(
       }));
     }
     eventState.hover.layer = newLayer;
+    eventState.hover.deep = newDeepLayer;
     await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
       detail: { origin: e, target: eventState },
       cancelable: true,
@@ -183,6 +188,7 @@ export default function useDetect(
       cancelable: true,
     }));
     eventState.hover.layer = null;
+    eventState.hover.deep = null;
   }
 
   return {

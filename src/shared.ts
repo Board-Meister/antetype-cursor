@@ -1,4 +1,4 @@
-import type { Layout, IBaseDef, IStart, ISize } from "@boardmeister/antetype-core"
+import type { Layout, IBaseDef, IStart, ISize, IParentDef } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { selectionType } from "@src/module";
 import type { CalcEvent, IInjected, IRequiredModules } from "@src/index";
@@ -49,6 +49,7 @@ export const getLayerByPosition = (
   x: number,
   y: number,
   skipSelection = true,
+  deep = false,
 ): IBaseDef|null => {
   for(let i = layout.length - 1; i >= 0; i--) {
     const layer = layout[i] as IBaseDef;
@@ -63,6 +64,18 @@ export const getLayerByPosition = (
 
     if (!isWithinLayer(x, y, start, size)) {
       continue;
+    }
+
+    if (deep && (layer as IParentDef).layout) {
+      const subLayer = getLayerByPosition(
+        (layer as IParentDef).layout,
+        x,
+        y,
+        skipSelection,
+        true,
+      )
+
+      if (subLayer) return subLayer;
     }
 
     return layer;

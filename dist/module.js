@@ -155,7 +155,7 @@ var getSizeAndStart = (layer) => {
   };
 };
 var isWithinLayer = (oX, oY, { x, y }, { w, h }) => oX >= x && oX <= w + x && oY >= y && oY <= h + y;
-var getLayerByPosition = (layout, x, y, skipSelection = true) => {
+var getLayerByPosition = (layout, x, y, skipSelection = true, deep = false) => {
   for (let i2 = layout.length - 1; i2 >= 0; i2--) {
     const layer = layout[i2];
     if (skipSelection && layer.type === selectionType) {
@@ -167,6 +167,16 @@ var getLayerByPosition = (layout, x, y, skipSelection = true) => {
     }
     if (!isWithinLayer(x, y, start, size)) {
       continue;
+    }
+    if (deep && layer.layout) {
+      const subLayer = getLayerByPosition(
+        layer.layout,
+        x,
+        y,
+        skipSelection,
+        true
+      );
+      if (subLayer) return subLayer;
     }
     return layer;
   }
@@ -478,6 +488,7 @@ function useDetect({
     },
     hover: {
       layer: null,
+      deep: null,
       x: 0,
       y: 0,
       mX: 0,
@@ -539,6 +550,7 @@ function useDetect({
     ({ x, y } = await calcPosition(x, y));
     ({ movementX, movementY } = calc(injected, { movementX, movementY }));
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
+    const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
     eventState.hover.x = x;
     eventState.hover.y = y;
     eventState.hover.mY = movementY;
@@ -555,6 +567,7 @@ function useDetect({
       }));
     }
     eventState.hover.layer = newLayer;
+    eventState.hover.deep = newDeepLayer;
     await herald.dispatch(new CustomEvent("antetype.cursor.on.move" /* MOVE */, {
       detail: { origin: e, target: eventState },
       cancelable: true
@@ -578,6 +591,7 @@ function useDetect({
       cancelable: true
     }));
     eventState.hover.layer = null;
+    eventState.hover.deep = null;
   };
   return {
     onDown,

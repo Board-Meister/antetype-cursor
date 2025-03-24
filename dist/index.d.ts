@@ -317,6 +317,7 @@ export interface IEventDown {
 }
 export interface IEventHover {
 	layer: IBaseDef | null;
+	deep: IBaseDef | null;
 	x: number;
 	y: number;
 	mY: number;
