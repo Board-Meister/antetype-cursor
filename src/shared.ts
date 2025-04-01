@@ -1,12 +1,13 @@
 import type { Layout, IBaseDef, IStart, ISize, IParentDef } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import { selectionType } from "@src/module";
-import type { CalcEvent, IInjected, IRequiredModules } from "@src/index";
+import type { CalcEvent, IRequiredModules } from "@src/index";
 import { Event } from "@src/index";
+import type { Herald } from "@boardmeister/herald";
 
-export const calc = <T extends Record<string, number>>(injected: IInjected, toCalc: T): T => {
+export const calc = <T extends Record<string, number>>(herald: Herald, toCalc: T): T => {
   const event = new CustomEvent<CalcEvent>(Event.CALC, { detail: { values: toCalc } });
-  injected.herald.dispatchSync(event)
+  herald.dispatchSync(event)
 
   return event.detail.values as T;
 }

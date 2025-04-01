@@ -39,7 +39,7 @@ export interface ICursor {
 export interface ICursorParams {
   canvas: HTMLCanvasElement|null,
   modules: IRequiredModules,
-  injected: IInjected,
+  herald: Herald,
 }
 
 export interface ICursorSettings {
@@ -90,7 +90,7 @@ export class AntetypeCursor {
     this.#instance = modules.cursor = this.#module({
       canvas,
       modules: modules as IRequiredModules,
-      injected: this.#injected!
+      herald: this.#injected!.herald
     });
   }
 

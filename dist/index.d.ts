@@ -79,7 +79,7 @@ declare class _ISubscriber {
 }
 type ISubscriber = typeof _ISubscriber;
 type AmbiguousSubscription = string | Subscription | Subscription[] | EventHandler;
-type EventHandler = (event: CustomEvent) => Promise<void> | void;
+type EventHandler = (event: CustomEvent) => Promise<any> | any;
 type Subscriptions = Record<string, AmbiguousSubscription>;
 interface Subscription {
 	method: string | EventHandler;
@@ -369,7 +369,7 @@ export interface ICursor {
 export interface ICursorParams {
 	canvas: HTMLCanvasElement | null;
 	modules: IRequiredModules;
-	injected: IInjected;
+	herald: Herald;
 }
 export interface ICursorSettings {
 	draw?: {

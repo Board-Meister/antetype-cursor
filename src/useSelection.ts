@@ -38,7 +38,7 @@ interface IMoveSaveData {
 export default function useSelection(
   {
     modules,
-    injected: { herald }
+    herald,
   }: ICursorParams,
   settings: ICursorSettings,
 ): ISelection {

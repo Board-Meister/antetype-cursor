@@ -1,12 +1,12 @@
 import type { IBaseDef } from "@boardmeister/antetype-core"
 import { calc } from "@src/shared";
-import { IInjected } from "@src/index";
+import type { Herald } from "@boardmeister/herald";
 
 export interface IDraw {
   drawSelection: (layer: IBaseDef) => void;
 }
 
-export default function useDraw(injected: IInjected, ctx: CanvasRenderingContext2D): IDraw {
+export default function useDraw(herald: Herald, ctx: CanvasRenderingContext2D): IDraw {
   const drawSelectionRect = (x: number, y: number, w: number, h: number, thickness: number, fill: string): void => {
     ctx.save();
     ctx.beginPath();
@@ -22,7 +22,7 @@ export default function useDraw(injected: IInjected, ctx: CanvasRenderingContext
   }
 
   const drawSelection = ({ start: { x, y }, size: { w, h } }: IBaseDef): void => {
-    const unit = calc(injected, { unit: 1 }).unit;
+    const unit = calc(herald, { unit: 1 }).unit;
     drawSelectionRect(
       x - (unit * 2),
       y - (unit * 2),

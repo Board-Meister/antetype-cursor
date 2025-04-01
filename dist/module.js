@@ -1,5 +1,5 @@
 // ../antetype-core/dist/index.js
-var s = ((t) => (t.INIT = "antetype.init", t.CLOSE = "antetype.close", t.DRAW = "antetype.draw", t.CALC = "antetype.calc", t.RECALC_FINISHED = "antetype.recalc.finished", t.MODULES = "antetype.modules", t.SETTINGS = "antetype.settings.definition", t))(s || {});
+var o = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(o || {});
 
 // src/index.ts
 var AntetypeCursor = class {
@@ -22,7 +22,7 @@ var AntetypeCursor = class {
     this.#instance = modules.cursor = this.#module({
       canvas,
       modules,
-      injected: this.#injected
+      herald: this.#injected.herald
     });
   }
   // @TODO there is not unregister method to remove all subscriptions
@@ -40,15 +40,15 @@ var AntetypeCursor = class {
     }
   }
   static subscriptions = {
-    [s.MODULES]: "register",
-    [s.DRAW]: "draw"
+    [o.MODULES]: "register",
+    [o.DRAW]: "draw"
   };
 };
 
 // ../antetype-memento/dist/index.js
-var i = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e))(i || {});
-var a = ((t) => (t.SAVE = "antetype.memento.save", t))(a || {});
-var r = class {
+var i = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(i || {});
+var o2 = ((t) => (t.SAVE = "antetype.memento.save", t))(o2 || {});
+var n = class {
   #e;
   #t = null;
   #i = null;
@@ -57,12 +57,12 @@ var r = class {
     this.#e = t;
   }
   async register(t) {
-    let { modules: s2, canvas: n } = t.detail;
+    let { modules: s, canvas: r } = t.detail;
     if (!this.#t) {
-      let o = this.#e.minstrel.getResourceUrl(this, "module.js");
-      this.#t = (await import(o)).default;
+      let a = this.#e.minstrel.getResourceUrl(this, "module.js");
+      this.#t = (await import(a)).default;
     }
-    this.#i = s2.memento = this.#t({ canvas: n, modules: s2, injected: this.#e });
+    this.#i = s.memento = this.#t({ canvas: r, modules: s, injected: this.#e });
   }
   save(t) {
     this.#i && this.#i.addToStack(t.detail.state);
@@ -131,9 +131,9 @@ function IterableWeakMap() {
 }
 
 // src/shared.ts
-var calc = (injected, toCalc) => {
+var calc = (herald, toCalc) => {
   const event = new CustomEvent("antetype.cursor.calc" /* CALC */, { detail: { values: toCalc } });
-  injected.herald.dispatchSync(event);
+  herald.dispatchSync(event);
   return event.detail.values;
 };
 var getSizeAndStart = (layer) => {
@@ -237,7 +237,7 @@ function getLayerFromSelection(layer) {
 }
 function useSelection({
   modules,
-  injected: { herald }
+  herald
 }, settings) {
   const selected = IterableWeakMap();
   let shown = [];
@@ -304,7 +304,7 @@ function useSelection({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(o2.SAVE, { detail: { state } }));
     }
   };
   const shouldSkipMove = (e) => {
@@ -452,7 +452,7 @@ function useSelection({
       }
     },
     {
-      event: s.CLOSE,
+      event: o.CLOSE,
       subscription: {
         method: () => {
           unregister();
@@ -470,11 +470,10 @@ function useSelection({
 
 // src/useDetect.ts
 function useDetect({
-  injected,
+  herald,
   modules: { core },
   canvas
 }, selected, settings) {
-  const { herald } = injected;
   const eventState = {
     selected,
     isDown: false,
@@ -548,7 +547,7 @@ function useDetect({
     const layout = core.meta.document.layout;
     let { clientX: x, clientY: y, movementX, movementY } = e;
     ({ x, y } = await calcPosition(x, y));
-    ({ movementX, movementY } = calc(injected, { movementX, movementY }));
+    ({ movementX, movementY } = calc(herald, { movementX, movementY }));
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
     const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
     eventState.hover.x = x;
@@ -602,7 +601,7 @@ function useDetect({
 }
 
 // src/useDraw.ts
-function useDraw(injected, ctx) {
+function useDraw(herald, ctx) {
   const drawSelectionRect = (x, y, w, h, thickness, fill) => {
     ctx.save();
     ctx.beginPath();
@@ -617,7 +616,7 @@ function useDraw(injected, ctx) {
     ctx.restore();
   };
   const drawSelection = ({ start: { x, y }, size: { w, h } }) => {
-    const unit = calc(injected, { unit: 1 }).unit;
+    const unit = calc(herald, { unit: 1 }).unit;
     drawSelectionRect(
       x - unit * 2,
       y - unit * 2,
@@ -642,11 +641,10 @@ function useDraw(injected, ctx) {
 
 // src/useResize.ts
 function useResize({
-  injected,
+  herald,
   canvas,
   modules
 }, showSelected, settings) {
-  const { herald } = injected;
   let mode = 8 /* NONE */, disableResize = false, resizeInProgress = false, saved = false;
   const eventSnapshot = {
     waiting: false,
@@ -660,7 +658,7 @@ function useResize({
     }
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
-    const bufferTop = calc(injected, { bufferTop: 10 }).bufferTop, bufferBottom = 0;
+    const bufferTop = calc(herald, { bufferTop: 10 }).bufferTop, bufferBottom = 0;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom, right = x <= sX + bufferBottom + w && x >= sX - bufferTop + w, bottom = y <= sY + bufferBottom + h && y >= sY - bufferTop + h, left = x <= sX + bufferTop && x >= sX - bufferBottom;
     if (top && left || bottom && right) {
       mode = top && left ? 6 /* TOP_LEFT */ : 5 /* BOTTOM_RIGHT */;
@@ -785,7 +783,7 @@ function useResize({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(o2.SAVE, { detail: { state } }));
     }
   };
   const changeLayerSize = async (original, x, y) => {
@@ -923,7 +921,7 @@ function useResize({
       }
     },
     {
-      event: s.CLOSE,
+      event: o.CLOSE,
       subscription: {
         method: () => {
           unregister();
@@ -936,7 +934,7 @@ function useResize({
 // src/useDelete.ts
 function useDelete({
   modules,
-  injected: { herald },
+  herald,
   canvas
 }, selected, settings) {
   canvas.setAttribute("tabindex", "0");
@@ -975,7 +973,7 @@ function useDelete({
       });
     });
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent(a.SAVE, { detail: { state } }));
+      void herald.dispatch(new CustomEvent(o2.SAVE, { detail: { state } }));
     }
   };
   document.addEventListener("keyup", onKeyUp, false);
@@ -985,7 +983,7 @@ function useDelete({
 // src/module.ts
 var selectionType = "selection";
 function Cursor(params) {
-  const { canvas, injected, modules } = params;
+  const { canvas, herald, modules } = params;
   if (!canvas) {
     throw new Error("[Antetype Cursor] Canvas is empty!");
   }
@@ -1005,7 +1003,7 @@ function Cursor(params) {
       return true;
     }
   });
-  const { drawSelection } = useDraw(injected, ctx);
+  const { drawSelection } = useDraw(herald, ctx);
   const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params, settings);
   const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
   useResize(params, showSelected, settings);
@@ -1014,13 +1012,31 @@ function Cursor(params) {
   canvas.addEventListener("mouseup", onUp, false);
   canvas.addEventListener("mousemove", onMove, false);
   canvas.addEventListener("mouseout", onOut, false);
-  const unregister = injected.herald.register(s.CLOSE, () => {
-    canvas.removeEventListener("mousedown", onDown, false);
-    canvas.removeEventListener("mouseup", onUp, false);
-    canvas.removeEventListener("mousemove", onMove, false);
-    canvas.removeEventListener("mouseout", onOut, false);
-    unregister();
-  });
+  const unregister = herald.batch([
+    {
+      event: o.CLOSE,
+      subscription: () => {
+        canvas.removeEventListener("mousedown", onDown, false);
+        canvas.removeEventListener("mouseup", onUp, false);
+        canvas.removeEventListener("mousemove", onMove, false);
+        canvas.removeEventListener("mouseout", onOut, false);
+        unregister();
+      }
+    },
+    {
+      event: o.DRAW,
+      subscription: (event) => {
+        const { element } = event.detail;
+        const typeToAction = {
+          selection: drawSelection
+        };
+        const el = typeToAction[element.type];
+        if (typeof el == "function") {
+          el(element);
+        }
+      }
+    }
+  ]);
   return {
     drawSelection,
     selected,

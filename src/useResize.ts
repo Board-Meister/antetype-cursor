@@ -47,14 +47,13 @@ interface IEventSnapshot {
 
 export default function useResize(
   {
-    injected,
+    herald,
     canvas,
     modules,
   }: ICursorParams,
   showSelected: VoidFunction,
   settings: ICursorSettings,
 ): void {
-  const { herald } = injected;
   let mode = ResizeMode.NONE,
     disableResize = false,
     resizeInProgress = false,
@@ -74,7 +73,7 @@ export default function useResize(
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
     // Buffer bottom doesn't matter as we don't detect that cursor is near layer, we detect when he enters it
-    const bufferTop = calc(injected, { bufferTop: 10 }).bufferTop,
+    const bufferTop = calc(herald, { bufferTop: 10 }).bufferTop,
       bufferBottom = 0
     ;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom,

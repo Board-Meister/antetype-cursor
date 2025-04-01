@@ -51,14 +51,13 @@ export interface SlipEvent extends BaseEvent {
 
 export default function useDetect(
   {
-    injected,
+    herald,
     modules: { core },
     canvas,
   }: ICursorParams,
   selected: Selected,
   settings: ICursorSettings,
 ): IDetect {
-  const { herald } = injected;
   const eventState: IEvent = {
     selected,
     isDown: false,
@@ -141,7 +140,7 @@ export default function useDetect(
     const layout = core.meta.document.layout;
     let { clientX: x, clientY: y, movementX, movementY } = e;
     ({ x, y } = await calcPosition(x, y));
-    ({ movementX, movementY } = calc(injected, { movementX, movementY }));
+    ({ movementX, movementY } = calc(herald, { movementX, movementY }));
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
     const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
 

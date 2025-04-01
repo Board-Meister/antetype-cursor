@@ -1,5 +1,5 @@
 // ../antetype-core/dist/index.js
-var s = ((t) => (t.INIT = "antetype.init", t.CLOSE = "antetype.close", t.DRAW = "antetype.draw", t.CALC = "antetype.calc", t.RECALC_FINISHED = "antetype.recalc.finished", t.MODULES = "antetype.modules", t.SETTINGS = "antetype.settings.definition", t))(s || {});
+var o = ((e) => (e.INIT = "antetype.init", e.CLOSE = "antetype.close", e.DRAW = "antetype.draw", e.CALC = "antetype.calc", e.RECALC_FINISHED = "antetype.recalc.finished", e.MODULES = "antetype.modules", e.SETTINGS = "antetype.settings.definition", e))(o || {});
 
 // src/index.ts
 var Event = /* @__PURE__ */ ((Event2) => {
@@ -31,7 +31,7 @@ var AntetypeCursor = class {
     this.#instance = modules.cursor = this.#module({
       canvas,
       modules,
-      injected: this.#injected
+      herald: this.#injected.herald
     });
   }
   // @TODO there is not unregister method to remove all subscriptions
@@ -49,8 +49,8 @@ var AntetypeCursor = class {
     }
   }
   static subscriptions = {
-    [s.MODULES]: "register",
-    [s.DRAW]: "draw"
+    [o.MODULES]: "register",
+    [o.DRAW]: "draw"
   };
 };
 var EnAntetypeCursor = AntetypeCursor;

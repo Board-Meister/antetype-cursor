@@ -13,7 +13,7 @@ export interface IDeleteSaveData {
 export default function useDelete(
   {
     modules,
-    injected: { herald },
+    herald,
     canvas,
   }: ICursorParams,
   selected: Selected,
