@@ -104,6 +104,7 @@ export default function useDetect(
     const { shiftKey, ctrlKey } = e;
     const layout = core.meta.document.layout;
     ({ x, y } = await calcPosition(x, y));
+    await updateHover(e, layout, x, y, 0, 0)
     eventState.down.x = x;
     eventState.down.y = y;
     eventState.down.shiftKey = shiftKey;
@@ -124,6 +125,7 @@ export default function useDetect(
       return;
     }
     eventState.isDown = false;
+
     await herald.dispatch(new CustomEvent<UpEvent>(Event.UP, {
       detail: { origin: e, target: eventState },
       cancelable: true,
@@ -141,6 +143,22 @@ export default function useDetect(
     let { clientX: x, clientY: y, movementX, movementY } = e;
     ({ x, y } = await calcPosition(x, y));
     ({ movementX, movementY } = calc(herald, { movementX, movementY }));
+    await updateHover(e, layout, x, y, movementX, movementY);
+
+    await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
+      detail: { origin: e, target: eventState },
+      cancelable: true,
+    }));
+  }
+
+  const updateHover = async (
+    e: MouseEvent,
+    layout: Layout,
+    x: number,
+    y: number,
+    movementY: number,
+    movementX: number,
+  ): Promise<void> => {
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
     const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
 
@@ -160,12 +178,9 @@ export default function useDetect(
         cancelable: true,
       }));
     }
+
     eventState.hover.layer = newLayer;
     eventState.hover.deep = newDeepLayer;
-    await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
-      detail: { origin: e, target: eventState },
-      cancelable: true,
-    }));
   }
 
   const clearEventStateDown = (): void => {

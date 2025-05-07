@@ -19,15 +19,6 @@ var i = class {
 };
 
 // src/index.ts
-var Event = /* @__PURE__ */ ((Event2) => {
-  Event2["CALC"] = "antetype.cursor.calc";
-  Event2["POSITION"] = "antetype.cursor.position";
-  Event2["DOWN"] = "antetype.cursor.on.down";
-  Event2["UP"] = "antetype.cursor.on.up";
-  Event2["MOVE"] = "antetype.cursor.on.move";
-  Event2["SLIP"] = "antetype.cursor.on.slip";
-  return Event2;
-})(Event || {});
 var AntetypeCursor = class {
   #injected;
   #module = null;
@@ -69,10 +60,72 @@ var AntetypeCursor = class {
     // [AntetypeCoreEvent.DRAW]: 'draw',
   };
 };
-var EnAntetypeCursor = AntetypeCursor;
-var src_default = EnAntetypeCursor;
+
+// test/helpers/definition.helper.ts
+var generateRandomLayer = (type, x = null, y = null, w = null, h = null) => ({
+  type,
+  start: { x: x ?? Math.random(), y: y ?? Math.random() },
+  size: { w: w ?? Math.random(), h: h ?? Math.random() },
+  _mark: Math.random()
+});
+var initialize = (herald, layout = null, settings = {}) => {
+  return herald.dispatch(new CustomEvent(o.INIT, {
+    detail: {
+      base: layout ?? [
+        generateRandomLayer("clear1"),
+        generateRandomLayer("clear2"),
+        generateRandomLayer("clear3"),
+        generateRandomLayer("clear4")
+      ],
+      settings
+    }
+  }));
+};
+var close = (herald) => {
+  return herald.dispatch(new CustomEvent(o.CLOSE));
+};
+var awaitEvent = (herald, event, timeout = 100) => {
+  return new Promise((resolve) => {
+    const timeoutId = setTimeout(() => {
+      unregister();
+      resolve();
+    }, timeout);
+    const unregister = herald.register(event, () => {
+      unregister();
+      resolve();
+      clearTimeout(timeoutId);
+    });
+  });
+};
+var generateMouseEvent = (type, details = {}) => {
+  return new MouseEvent(type, {
+    bubbles: true,
+    cancelable: true,
+    view: window,
+    ...details
+  });
+};
+var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp = {}) => {
+  const down = generateMouseEvent("mousedown", {
+    clientX: x,
+    clientY: y,
+    ...additionalDown
+  });
+  const up = generateMouseEvent("mouseup", {
+    clientX: x,
+    clientY: y,
+    ...additionalUp
+  });
+  canvas.dispatchEvent(down);
+  await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+  canvas.dispatchEvent(up);
+  await awaitEvent(herald, "antetype.cursor.on.up" /* UP */);
+};
 export {
-  AntetypeCursor,
-  Event,
-  src_default as default
+  awaitClick,
+  awaitEvent,
+  close,
+  generateMouseEvent,
+  generateRandomLayer,
+  initialize
 };

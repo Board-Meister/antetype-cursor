@@ -65,15 +65,16 @@ export default function useResize(
     movement: null,
   };
   const isDisabled = (): boolean => settings.resize?.disabled ?? false;
-  const determinateCursorType = (layer: ISelectionDef, target: IEvent): string => {
-    if (layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
+  const determinateCursorType = (layer: ISelectionDef|null, target: IEvent): string => {
+    if (!layer || layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
+      mode = ResizeMode.NONE;
       return 'default';
     }
 
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
     // Buffer bottom doesn't matter as we don't detect that cursor is near layer, we detect when he enters it
-    const bufferTop = calc(herald, { bufferTop: 10 }).bufferTop,
+    const bufferTop = calc(herald, { bufferTop: settings.resize?.buffer ?? 10 }).bufferTop,
       bufferBottom = 0
     ;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom,
@@ -258,7 +259,7 @@ export default function useResize(
     }
 
     resizeInProgress = true;
-    await modules.core.manage.resize(original, original.size);
+    await modules.core.view.resize(original, original.size);
     showSelected();
     modules.core.view.redraw();
     resizeInProgress = false;
@@ -310,6 +311,14 @@ export default function useResize(
   }
 
   const handleDown = (e: CustomEvent<DownEvent>): void => {
+    const { target } = e.detail;
+    const layer = target?.hover?.layer;
+    if (layer?.type === selectionType) {
+      canvas!.style.cursor = determinateCursorType(layer as ISelectionDef, target);
+    } else {
+      resetMode();
+    }
+
     if (mode === ResizeMode.NONE) {
       disableResize = true;
       return;
@@ -326,6 +335,7 @@ export default function useResize(
       e.preventDefault();
     }
     resetMode();
+
     if (layer?.type === selectionType) {
       canvas!.style.cursor = determinateCursorType(layer as ISelectionDef, target);
     } else {
@@ -341,7 +351,7 @@ export default function useResize(
           if (isDisabled()) {
             return;
           }
-          handleMove(e);
+          handleMove(e as CustomEvent<MoveEvent>);
         },
         priority: -10,
       },
@@ -353,7 +363,7 @@ export default function useResize(
           if (isDisabled()) {
             return;
           }
-          revertCursorToDefault(e);
+          revertCursorToDefault(e as CustomEvent<SlipEvent>);
         },
       },
     },
@@ -364,7 +374,7 @@ export default function useResize(
           if (isDisabled()) {
             return;
           }
-          handleDown(e);
+          handleDown(e as CustomEvent<DownEvent>);
         },
         priority: -10,
       },
@@ -376,7 +386,7 @@ export default function useResize(
           if (isDisabled()) {
             return;
           }
-          handleUpAfterResize(e);
+          handleUpAfterResize(e as CustomEvent<UpEvent>);
         },
         priority: -10,
       },

@@ -1,7 +1,7 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions } from "@boardmeister/herald"
-import type { ModulesEvent, Modules, ICore, DrawEvent, IBaseDef } from "@boardmeister/antetype-core"
+import type { ModulesEvent, Modules, ICore, IBaseDef } from "@boardmeister/antetype-core"
 import type Cursor from "@src/module";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import { IIterableWeakMap } from "@src/IterableWeakMap";
@@ -57,6 +57,7 @@ export interface ICursorSettings {
   }
   resize?: {
     disabled?: boolean;
+    buffer?: number;
   }
   delete?: {
     disabled?: boolean;
@@ -71,7 +72,7 @@ export interface IInjected extends Record<string, object> {
 export class AntetypeCursor {
   #injected?: IInjected;
   #module: typeof Cursor|null = null;
-  #instance: ICursor|null = null;
+  // #instance: ICursor|null = null;
 
   static inject: Record<string, string> = {
     minstrel: 'boardmeister/minstrel',
@@ -87,33 +88,31 @@ export class AntetypeCursor {
       const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
       this.#module = ((await import(module)) as { default: typeof Cursor }).default;
     }
-    this.#instance = modules.cursor = this.#module({
+    modules.cursor = this.#module({
       canvas,
       modules: modules as IRequiredModules,
       herald: this.#injected!.herald
     });
   }
 
-  // @TODO there is not unregister method to remove all subscriptions
+  // draw(event: CustomEvent<DrawEvent>): void {
+  //   if (!this.#instance) {
+  //     return;
+  //   }
+  //   const { element } = event.detail;
+  //   const typeToAction: Record<string, (def: IBaseDef) => void> = {
+  //     selection: this.#instance.drawSelection,
+  //   };
 
-  draw(event: CustomEvent<DrawEvent>): void {
-    if (!this.#instance) {
-      return;
-    }
-    const { element } = event.detail;
-    const typeToAction: Record<string, (def: IBaseDef) => void> = {
-      selection: this.#instance.drawSelection,
-    };
-
-    const el = typeToAction[element.type]
-    if (typeof el == 'function') {
-      el(element);
-    }
-  }
+  //   const el = typeToAction[element.type]
+  //   if (typeof el == 'function') {
+  //     el(element);
+  //   }
+  // }
 
   static subscriptions: Subscriptions = {
     [AntetypeCoreEvent.MODULES]: 'register',
-    [AntetypeCoreEvent.DRAW]: 'draw',
+    // [AntetypeCoreEvent.DRAW]: 'draw',
   }
 }
 

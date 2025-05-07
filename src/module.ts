@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { ICursor, ICursorParams } from "@src/index";
+import { ICursor, ICursorParams, type ICursorSettings } from "@src/index";
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IBaseDef, DrawEvent } from "@boardmeister/antetype-core"
 import useSelection from "@src/useSelection";
@@ -30,14 +30,12 @@ export default function Cursor(
     modules.core.setting.set('cursor', {})
   }
   const settings = new Proxy({}, {
-    get(target: unknown, prop: string) {
-      target;
-      return ((modules.core.setting.get('cursor')! as unknown) as any)[prop] as unknown;
+    get(_target, prop: keyof ICursorSettings) {
+      return modules.core.setting.get<ICursorSettings>('cursor')![prop] as unknown;
     },
-    set(obj, prop, value) {
-      obj;
-      const settings = ((modules.core.setting.get('cursor')! as unknown) as any);
-      settings[prop] = value;
+    set(_obj, prop: keyof ICursorSettings, value) {
+      const settings = modules.core.setting.get<ICursorSettings>('cursor')!;
+      settings[prop] = value as ICursorSettings[keyof ICursorSettings];
 
       return true;
     }

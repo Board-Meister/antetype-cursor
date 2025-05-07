@@ -1,4 +1,4 @@
-import type { ICore } from "@boardmeister/antetype-core";
+import type { IBaseDef, ICore, Layout } from "@boardmeister/antetype-core";
 import Core from "@boardmeister/antetype-core/src/core";
 import { Herald } from "@boardmeister/herald";
 import { type ICursor } from "@src/index";
@@ -10,6 +10,16 @@ describe('Cursors selection', () => {
   const herald = new Herald();
   const canvas = document.createElement('canvas');
   const core = Core({ herald, canvas }) as ICore;
+  const defaultSettings = {
+    cursor: {
+      resize: {
+        buffer: 0, // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
+      }
+    }
+  };
+  const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
+  const getSelected = (): Layout => cursor.selected.keys();
+  const getFirst = (): IBaseDef|null => cursor.selected.firstKey();
   beforeEach(() => {
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
@@ -19,6 +29,12 @@ describe('Cursors selection', () => {
   })
 
   it('allows to select one or multiple layers', async () => {
+    /*
+      +-----+  +-----+
+      |     |  |     |
+      |     |  |     |
+      +-----+  +-----+
+    */
     await initialize(herald, [
       generateRandomLayer(
         'testSelect1',
@@ -30,33 +46,63 @@ describe('Cursors selection', () => {
         25, 10,
         10, 10,
       ),
-    ], {
-      cursor: {
-        resize: {
-          buffer: 0, // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
-        }
-      }
-    });
+    ], defaultSettings);
 
-    const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
     await awaitClick(15, 15);
-    expect(cursor.selected.keys().length).withContext('First layer was selected').toBe(1);
-    expect(cursor.selected.firstKey()?.type).toBe('testSelect1');
+    expect(getSelected().length).withContext('First layer was selected').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect1');
     await awaitClick(22.5, 15);
-    expect(cursor.selected.keys().length).withContext('Nothing was selected').toBe(0);
+    expect(getSelected().length).withContext('Nothing was selected').toBe(0);
     await awaitClick(30, 15);
-    expect(cursor.selected.keys().length).withContext('Second layer was selected').toBe(1);
-    expect(cursor.selected.firstKey()?.type).toBe('testSelect2')
+    expect(getSelected().length).withContext('Second layer was selected').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect2')
     await awaitClick(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(cursor.selected.keys().length).withContext('Both are selected').toBe(2);
+    expect(getSelected().length).withContext('Both are selected').toBe(2);
     await awaitClick(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(cursor.selected.keys().length).withContext('One was unselected with ctrl').toBe(1);
-    expect(cursor.selected.firstKey()?.type).toBe('testSelect1');
+    expect(getSelected().length).withContext('One was unselected with ctrl').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect1');
     await awaitClick(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(cursor.selected.keys().length).withContext('Reselected with control').toBe(2);
+    expect(getSelected().length).withContext('Reselected with control').toBe(2);
     await awaitClick(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(cursor.selected.keys().length).withContext('Shift key does nothing on already selected').toBe(2);
+    expect(getSelected().length).withContext('Shift key does nothing on already selected').toBe(2);
     await awaitClick(22.5, 15, { shiftKey: true }, { shiftKey: true });
-    expect(cursor.selected.keys().length).withContext('Shift key nowhere does not change selection').toBe(2);
+    expect(getSelected().length).withContext('Shift key nowhere does not change selection').toBe(2);
+  });
+
+  fit('has working see-through selection', async () => {
+    /*
+      +----------+
+      |          |
+      |    +----------+
+      |    |          |
+      |    |          |
+      +----+          |
+           |          |
+           +----------+
+    */
+    await initialize(herald, [
+      generateRandomLayer(
+        'testSelect1',
+        10, 10,
+        40, 40,
+      ),
+      generateRandomLayer(
+        'testSelect2',
+        30, 30,
+        40, 40,
+      ),
+    ], defaultSettings);
+
+    await awaitClick(35, 35);
+    expect(getSelected().length).withContext('Higher layer was selected').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect2')
+    await awaitClick(35, 35);
+    expect(getSelected().length).withContext('Amount of layer did not change').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect1')
+    await awaitClick(35, 35);
+    expect(getSelected().length).withContext('Amount of layer did not change').toBe(0);
+    await awaitClick(35, 35);
+    expect(getSelected().length).withContext('Higher layer was selected').toBe(1);
+    expect(getFirst()?.type).toBe('testSelect2')
   });
 });

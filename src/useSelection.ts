@@ -6,7 +6,7 @@ import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
 import { ISelectionDef, selectionType } from "@src/module";
 import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
-import { MoveEvent, UpEvent } from "@src/useDetect";
+import { MoveEvent, UpEvent, type BaseEvent } from "@src/useDetect";
 import type { IWorkspace } from "@boardmeister/antetype-workspace";
 
 export interface ISelection {
@@ -268,7 +268,7 @@ export default function useSelection(
 
   const unregister = herald.batch([
     {
-      event:Event.DOWN,
+      event: Event.DOWN,
       subscription: e => {
         if (isDisabled()) {
           return;
@@ -278,23 +278,23 @@ export default function useSelection(
       },
     },
     {
-      event:Event.UP,
+      event: Event.UP,
       subscription: e => {
         if (isDisabled()) {
           return;
         }
 
-        selectionMouseUp(e)
+        selectionMouseUp(e as CustomEvent<BaseEvent>)
       },
     },
     {
-      event:Event.MOVE,
+      event: Event.MOVE,
       subscription: e => {
         if (isDisabled()) {
           return;
         }
 
-        startSelectionMove(e)
+        startSelectionMove(e as CustomEvent<BaseEvent>)
       },
     },
     {
