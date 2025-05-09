@@ -6,10 +6,9 @@ import Cursor from "@src/module";
 import { initialize, close, generateRandomLayer, awaitClick as awaitClickBase } from "test/helpers/definition.helper";
 
 describe('Cursors selection', () => {
-  let cursor: ICursor;
+  let cursor: ICursor, core: ICore;
   const herald = new Herald();
   const canvas = document.createElement('canvas');
-  const core = Core({ herald, canvas }) as ICore;
   const defaultSettings = {
     cursor: {
       resize: {
@@ -21,6 +20,7 @@ describe('Cursors selection', () => {
   const getSelected = (): Layout => cursor.selected.keys();
   const getFirst = (): IBaseDef|null => cursor.selected.firstKey();
   beforeEach(() => {
+    core = Core({ herald, canvas }) as ICore;
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
 
@@ -69,7 +69,7 @@ describe('Cursors selection', () => {
     expect(getSelected().length).withContext('Shift key nowhere does not change selection').toBe(2);
   });
 
-  fit('has working see-through selection', async () => {
+  it('has working see-through selection', async () => {
     /*
       +----------+
       |          |
@@ -104,5 +104,9 @@ describe('Cursors selection', () => {
     await awaitClick(35, 35);
     expect(getSelected().length).withContext('Higher layer was selected').toBe(1);
     expect(getFirst()?.type).toBe('testSelect2')
+    await awaitClick(35, 35, { shiftKey: true });
+    expect(getSelected().length).withContext('Both layers got selected').toBe(2);
+    await awaitClick(35, 35, { shiftKey: true });
+    expect(getSelected().length).withContext('Both layers are still selected').toBe(2);
   });
 });

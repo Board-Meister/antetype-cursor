@@ -156,8 +156,8 @@ export default function useDetect(
     layout: Layout,
     x: number,
     y: number,
-    movementY: number,
     movementX: number,
+    movementY: number,
   ): Promise<void> => {
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
     const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);

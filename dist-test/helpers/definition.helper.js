@@ -62,12 +62,19 @@ var AntetypeCursor = class {
 };
 
 // test/helpers/definition.helper.ts
-var generateRandomLayer = (type, x = null, y = null, w = null, h = null) => ({
-  type,
-  start: { x: x ?? Math.random(), y: y ?? Math.random() },
-  size: { w: w ?? Math.random(), h: h ?? Math.random() },
-  _mark: Math.random()
-});
+var generateRandomLayer = (type, x = null, y = null, w = null, h = null) => {
+  const layer = {
+    type,
+    start: { x: x ?? Math.random(), y: y ?? Math.random() },
+    size: { w: w ?? Math.random(), h: h ?? Math.random() },
+    _mark: Math.random()
+  };
+  layer.area = {
+    start: Object.assign({}, layer.start),
+    size: Object.assign({}, layer.size)
+  };
+  return layer;
+};
 var initialize = (herald, layout = null, settings = {}) => {
   return herald.dispatch(new CustomEvent(o.INIT, {
     detail: {

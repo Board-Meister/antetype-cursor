@@ -5,7 +5,7 @@ import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event, ICursorParams, ICursorSettings } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
-import { calc, isEditable, setNewPositionOnOriginal } from "@src/shared";
+import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
 import { getLayerFromSelection } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
@@ -142,7 +142,7 @@ export default function useResize(
     if (mode === ResizeMode.TOP  || mode === ResizeMode.BOTTOM) x = 0;
 
     /** @TODO move to event, so we can decouple workspace from cursor */
-    const scale = (modules.workspace as IWorkspace).getScale();
+    const scale = modules.workspace ? (modules.workspace as IWorkspace).getScale() : 1;
     x /= scale;
     y /= scale;
 
@@ -243,8 +243,8 @@ export default function useResize(
     const layer = modules.core.clone.getClone(original);
 
     if (layer.area) {
-      if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
-      if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
+      if (!isNotEditable(layer.area.size.w)) layer.area.size.w += x;
+      if (!isNotEditable(layer.area.size.h)) layer.area.size.h += y;
     }
 
     original = modules.core.clone.getOriginal(layer);

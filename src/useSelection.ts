@@ -26,7 +26,7 @@ export function getLayerFromSelection(layer: IBaseDef): IBaseDef {
   return layer;
 }
 
-interface IMoveSaveData {
+export interface IMoveSaveData {
   x: number;
   y: number;
   after: {
@@ -52,7 +52,7 @@ export default function useSelection(
   let seeThroughStackMap = IterableWeakMap<IBaseDef, true>();
   const core = modules.core;
   const innerSettings = {
-    moveBufor: 5,
+    moveBuffer: 5,
   }
 
   const isDisabled = (): boolean => settings.select?.disabled ?? false;
@@ -130,8 +130,8 @@ export default function useSelection(
     accumulatedMoveX += movementX;
     accumulatedMoveY += movementY;
     if (
-      Math.abs(accumulatedMoveX) > innerSettings.moveBufor
-      || Math.abs(accumulatedMoveY) > innerSettings.moveBufor
+      Math.abs(accumulatedMoveX) > innerSettings.moveBuffer
+      || Math.abs(accumulatedMoveY) > innerSettings.moveBuffer
     ) {
       skipMove = false;
       return false;
@@ -175,12 +175,12 @@ export default function useSelection(
     }
 
     selected.keys().forEach(layer => {
-      // @TODO firgure out a wat to set group scoped sized when moving nested layers
+      // @TODO figure out a way to set group scoped sizes when moving nested layers
       if (layer.hierarchy?.parent !== modules.core.meta.document) {
         return;
       }
       /** @TODO move to event, so we can decouple workspace from cursor */
-      const scale = (modules.workspace as IWorkspace).getScale();
+      const scale = modules.workspace ? (modules.workspace as IWorkspace).getScale() : 1;
       // @TODO add event when layer was moved
       setNewPositionOnOriginal(modules, layer, mX/scale, mY/scale);
     });

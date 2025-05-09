@@ -1851,56 +1851,171 @@ var generateMouseEvent = (type, details = {}) => {
     ...details
   });
 };
+var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp = {}) => {
+  const down = generateMouseEvent("mousedown", {
+    clientX: x,
+    clientY: y,
+    ...additionalDown
+  });
+  const up = generateMouseEvent("mouseup", {
+    clientX: x,
+    clientY: y,
+    ...additionalUp
+  });
+  canvas.dispatchEvent(down);
+  await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+  canvas.dispatchEvent(up);
+  await awaitEvent(herald, "antetype.cursor.on.up" /* UP */);
+};
 
-// test/draw.spec.ts
-describe("Drawing selection", () => {
-  let cursor;
+// test/move.spec.ts
+describe("Cursors movement", () => {
+  let cursor, core, moveMap;
   const herald = new Herald();
   const canvas = document.createElement("canvas");
-  const core = Core({ herald, canvas });
+  const defaultSettings = {
+    cursor: {
+      resize: {
+        buffer: 0
+        // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
+      }
+    }
+  };
+  const getSelected = () => cursor.selected.keys();
+  const awaitClick2 = (...rest) => awaitClick(herald, canvas, ...rest);
+  const moveAndVerify = async (layout, x, y) => {
+    const layerStarts = [];
+    for (const layer of layout) {
+      if (!moveMap.has(layer)) {
+        moveMap.set(layer, {
+          x: layer.start.x,
+          y: layer.start.y
+        });
+      }
+      layerStarts.push(moveMap.get(layer));
+    }
+    canvas.dispatchEvent(generateMouseEvent("mousemove", {
+      movementX: x,
+      movementY: y
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.move" /* MOVE */);
+    for (let i3 = 0; i3 < layout.length; i3++) {
+      const layer = layout[i3];
+      const { x: baseX, y: baseY } = layerStarts[i3];
+      expect(layer.start.x).withContext(`Check layer ${String(i3 + 1)} for X`).toBe(baseX + x);
+      expect(layer.start.y).withContext(`Check layer ${String(i3 + 1)} for Y`).toBe(baseY + y);
+      moveMap.set(layer, {
+        x: baseX + x,
+        y: baseY + y
+      });
+    }
+  };
   beforeEach(() => {
+    moveMap = /* @__PURE__ */ new WeakMap();
+    core = Core({ herald, canvas });
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
   afterEach(async () => {
     await close(herald);
   });
-  it("is done correctly", async () => {
+  it("works on one layer", async () => {
     await initialize(herald, [
       generateRandomLayer(
-        "testSelect",
+        "testMove1",
         10,
         10,
-        50,
-        50
+        10,
+        10
       )
-    ]);
-    const down = generateMouseEvent("mousedown", {
-      clientX: 20,
-      clientY: 20
-    });
-    const up = generateMouseEvent("mouseup", {
-      clientX: 20,
-      clientY: 20
-    });
-    canvas.dispatchEvent(down);
-    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
-    canvas.dispatchEvent(up);
-    await awaitEvent(herald, "antetype.cursor.on.up" /* UP */);
-    expect(cursor.selected.keys().length).toBe(1);
-    const document2 = core.meta.document;
-    expect(document2.base.length).toBe(1);
-    expect(document2.layout.length).toBe(2);
-    const possibleSelection = document2.layout.slice(-1)[0];
-    expect(possibleSelection.type).toBe("selection");
-    expect(possibleSelection).toEqual(jasmine.objectContaining({
-      size: jasmine.objectContaining({
-        w: 50,
-        h: 50
-      }),
-      start: jasmine.objectContaining({
-        x: 10,
-        y: 10
-      })
+    ], defaultSettings);
+    expect(core.meta.document.base[0].start.x).toBe(10);
+    expect(core.meta.document.base[0].start.y).toBe(10);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 15
     }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await moveAndVerify(core.meta.document.base, 5, 7);
+    await moveAndVerify(core.meta.document.base, -2, 1);
+    await moveAndVerify(core.meta.document.base, 2, -1);
+    await moveAndVerify(core.meta.document.base, -2, -2);
+  });
+  it("works on multiple layers", async () => {
+    await initialize(herald, [
+      generateRandomLayer(
+        "testMove1",
+        10,
+        10,
+        10,
+        10
+      ),
+      generateRandomLayer(
+        "testMove2",
+        15,
+        15,
+        14,
+        17
+      ),
+      generateRandomLayer(
+        "testMove3",
+        20,
+        20,
+        16,
+        12
+      )
+    ], defaultSettings);
+    await awaitClick2(14, 14);
+    await awaitClick2(16, 16, { shiftKey: true });
+    await awaitClick2(21, 21, { shiftKey: true });
+    expect(getSelected().length).toBe(3);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 16,
+      clientY: 16
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await moveAndVerify(core.meta.document.base, 5, 7);
+    expect(getSelected().length).toBe(3);
+    await moveAndVerify(core.meta.document.base, 1, -2);
+    expect(getSelected().length).toBe(3);
+    await moveAndVerify(core.meta.document.base, 0, 0);
+    await moveAndVerify(core.meta.document.base, -2, 0);
+    await moveAndVerify(core.meta.document.base, -2, -3);
+  });
+  it("can be undone and redone", async () => {
+    await initialize(herald, [
+      generateRandomLayer(
+        "testMove1",
+        10,
+        10,
+        10,
+        10
+      )
+    ], defaultSettings);
+    let stateEvent;
+    const unregister = herald.register(
+      o2.SAVE,
+      (e) => {
+        stateEvent = e;
+      }
+    );
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 15
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await Promise.all([
+      moveAndVerify(core.meta.document.base, 5, 6),
+      awaitEvent(herald, o2.SAVE)
+    ]);
+    const { state } = stateEvent.detail;
+    const { layer, data, undo, redo } = state[0];
+    await undo(layer, data);
+    const toCheck = core.meta.document.base[0];
+    expect(toCheck.start.x).withContext("undo X").toBe(10);
+    expect(toCheck.start.y).withContext("undo Y").toBe(10);
+    await redo(layer, data);
+    expect(toCheck.start.x).withContext("redo X").toBe(15);
+    expect(toCheck.start.y).withContext("redo Y").toBe(16);
+    unregister();
   });
 });

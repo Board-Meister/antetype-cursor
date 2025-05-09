@@ -217,30 +217,30 @@ var getAllClickedLayers = (layout, x, y, skipSelection = true) => {
   }
   return clicked;
 };
-var isEditable = (value) => typeof value == "number" && isNaN(value) || typeof value == "undefined";
+var isNotEditable = (value) => typeof value == "number" && isNaN(value) || typeof value == "undefined";
 var setNewPositionOnOriginal = (modules, layer, x, y) => {
   layer = modules.core.clone.getClone(layer);
   if (layer.area) {
-    if (!isEditable(layer.area.start.x)) layer.area.start.x += x;
-    if (!isEditable(layer.area.start.y)) layer.area.start.y += y;
+    if (!isNotEditable(layer.area.start.x)) layer.area.start.x += x;
+    if (!isNotEditable(layer.area.start.y)) layer.area.start.y += y;
   }
   if (layer.start) {
-    if (!isEditable(layer.start.x)) layer.start.x += x;
-    if (!isEditable(layer.start.y)) layer.start.y += y;
+    if (!isNotEditable(layer.start.x)) layer.start.x += x;
+    if (!isNotEditable(layer.start.y)) layer.start.y += y;
   }
   const original = modules.core.clone.getOriginal(layer);
   if (modules.workspace) {
     const workspace = modules.workspace;
     if (original.start) {
-      if (!isEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
-      if (!isEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
+      if (!isNotEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x);
+      if (!isNotEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, "y");
     }
     return;
   }
   const area = layer.area?.start ?? layer.start;
   if (area && original.start) {
-    if (!isEditable(original.start.x)) original.start.x = area.x + x;
-    if (!isEditable(original.start.y)) original.start.y = area.y + y;
+    if (!isNotEditable(original.start.x)) original.start.x = area.x;
+    if (!isNotEditable(original.start.y)) original.start.y = area.y;
   }
 };
 
@@ -265,7 +265,7 @@ function useSelection({
   let seeThroughStackMap = IterableWeakMap();
   const core = modules.core;
   const innerSettings = {
-    moveBufor: 5
+    moveBuffer: 5
   };
   const isDisabled = () => settings.select?.disabled ?? false;
   const resetSelected = () => {
@@ -330,7 +330,7 @@ function useSelection({
     const { origin: { movementX, movementY } } = e.detail;
     accumulatedMoveX += movementX;
     accumulatedMoveY += movementY;
-    if (Math.abs(accumulatedMoveX) > innerSettings.moveBufor || Math.abs(accumulatedMoveY) > innerSettings.moveBufor) {
+    if (Math.abs(accumulatedMoveX) > innerSettings.moveBuffer || Math.abs(accumulatedMoveY) > innerSettings.moveBuffer) {
       skipMove = false;
       return false;
     }
@@ -367,7 +367,7 @@ function useSelection({
       if (layer.hierarchy?.parent !== modules.core.meta.document) {
         return;
       }
-      const scale = modules.workspace.getScale();
+      const scale = modules.workspace ? modules.workspace.getScale() : 1;
       setNewPositionOnOriginal(modules, layer, mX / scale, mY / scale);
     });
     showSelected();
@@ -571,7 +571,7 @@ function useDetect({
       cancelable: true
     }));
   };
-  const updateHover = async (e, layout, x, y, movementY, movementX) => {
+  const updateHover = async (e, layout, x, y, movementX, movementY) => {
     const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
     const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
     eventState.hover.x = x;
@@ -727,7 +727,7 @@ function useResize({
     let { hover: { mX: x, mY: y } } = target;
     if (mode === 3 /* LEFT */ || mode === 2 /* RIGHT */) y = 0;
     if (mode === 0 /* TOP */ || mode === 1 /* BOTTOM */) x = 0;
-    const scale = modules.workspace.getScale();
+    const scale = modules.workspace ? modules.workspace.getScale() : 1;
     x /= scale;
     y /= scale;
     if (resizeInProgress) {
@@ -813,8 +813,8 @@ function useResize({
     }
     const layer = modules.core.clone.getClone(original);
     if (layer.area) {
-      if (!isEditable(layer.area.size.w)) layer.area.size.w += x;
-      if (!isEditable(layer.area.size.h)) layer.area.size.h += y;
+      if (!isNotEditable(layer.area.size.w)) layer.area.size.w += x;
+      if (!isNotEditable(layer.area.size.h)) layer.area.size.h += y;
     }
     original = modules.core.clone.getOriginal(layer);
     if (modules.workspace) {

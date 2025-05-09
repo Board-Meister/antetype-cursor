@@ -114,7 +114,7 @@ export const getAllClickedLayers = (
   return clicked;
 }
 
-export const isEditable = (value: unknown): boolean =>
+export const isNotEditable = (value: unknown): boolean =>
   (typeof value == 'number' && isNaN(value))
   || typeof value == 'undefined'
 ;
@@ -122,31 +122,31 @@ export const isEditable = (value: unknown): boolean =>
 export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBaseDef, x: number, y: number): void => {
   layer = modules.core.clone.getClone(layer);
   if (layer.area) {
-    if (!isEditable(layer.area.start.x)) layer.area.start.x += x;
-    if (!isEditable(layer.area.start.y)) layer.area.start.y += y;
+    if (!isNotEditable(layer.area.start.x)) layer.area.start.x += x;
+    if (!isNotEditable(layer.area.start.y)) layer.area.start.y += y;
   }
 
   if (layer.start) {
-    if (!isEditable(layer.start.x)) layer.start.x += x;
-    if (!isEditable(layer.start.y)) layer.start.y += y;
+    if (!isNotEditable(layer.start.x)) layer.start.x += x;
+    if (!isNotEditable(layer.start.y)) layer.start.y += y;
   }
 
-  // @TODO probably move it to event
+  // @TODO probably move it to event - feels unnatural to handle it here
   // something like Adapter/Global events like ANTETYPE.LAYER.SET.START which is pretty generic and
   // should we easy to understand and used by different modules
   const original = modules.core.clone.getOriginal(layer);
   if (modules.workspace) {
     const workspace = modules.workspace as IWorkspace;
     if (original.start) {
-      if (!isEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x) as any;
-      if (!isEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
+      if (!isNotEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x) as any;
+      if (!isNotEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
     }
     return;
   }
 
   const area = layer.area?.start ?? layer.start;
   if (area && original.start) {
-    if (!isEditable(original.start.x)) original.start.x = area.x + x;
-    if (!isEditable(original.start.y)) original.start.y = area.y + y;
+    if (!isNotEditable(original.start.x)) original.start.x = area.x;
+    if (!isNotEditable(original.start.y)) original.start.y = area.y;
   }
 }

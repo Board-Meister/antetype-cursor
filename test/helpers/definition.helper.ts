@@ -9,12 +9,21 @@ export const generateRandomLayer = (
   y: number|null = null,
   w: number|null = null,
   h: number|null = null,
-): IBaseDef => ({
-  type,
-  start: { x: x ?? Math.random(), y: y ?? Math.random() },
-  size: { w: w ?? Math.random(), h: h ?? Math.random() },
-  _mark: Math.random(),
-});
+): IBaseDef => {
+  const layer: IBaseDef = {
+    type,
+    start: { x: x ?? Math.random(), y: y ?? Math.random() },
+    size: { w: w ?? Math.random(), h: h ?? Math.random() },
+    _mark: Math.random(),
+  };
+
+  layer.area = {
+    start: Object.assign({}, layer.start),
+    size: Object.assign({}, layer.size),
+  }
+
+  return layer;
+};
 
 export const initialize = (herald: Herald, layout: Layout|null = null, settings: ISettings = {}): Promise<void> => {
   return herald.dispatch(new CustomEvent<InitEvent>(CoreEvent.INIT, {
