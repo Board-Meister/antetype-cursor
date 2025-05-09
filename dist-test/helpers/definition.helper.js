@@ -112,6 +112,15 @@ var generateMouseEvent = (type, details = {}) => {
     ...details
   });
 };
+var generateKeyboardEvent = (type, key, details = {}) => {
+  return new KeyboardEvent(type, {
+    key,
+    code: key,
+    bubbles: true,
+    cancelable: true,
+    ...details
+  });
+};
 var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp = {}) => {
   const down = generateMouseEvent("mousedown", {
     clientX: x,
@@ -128,10 +137,20 @@ var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp 
   canvas.dispatchEvent(up);
   await awaitEvent(herald, "antetype.cursor.on.up" /* UP */);
 };
+var defaultSettings = {
+  cursor: {
+    resize: {
+      buffer: 0
+      // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
+    }
+  }
+};
 export {
   awaitClick,
   awaitEvent,
   close,
+  defaultSettings,
+  generateKeyboardEvent,
   generateMouseEvent,
   generateRandomLayer,
   initialize

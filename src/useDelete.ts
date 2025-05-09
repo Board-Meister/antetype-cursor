@@ -5,6 +5,7 @@ import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
 export interface IDelete {
+  onKeyUp: (e: KeyboardEvent) => Promise<void>;
 }
 
 export interface IDeleteSaveData {
@@ -20,7 +21,7 @@ export default function useDelete(
   settings: ICursorSettings,
 ): IDelete {
   canvas!.setAttribute('tabindex', '0');
-  const isDisabled = () => settings.delete?.disabled ?? false;
+  const isDisabled = (): boolean => settings.delete?.disabled ?? false;
   const onKeyUp = async (e: KeyboardEvent): Promise<void> => {
     if (e.target !== canvas && e.target !== document.body || isDisabled()) {
       return;
@@ -62,6 +63,7 @@ export default function useDelete(
     }
   }
 
-  document.addEventListener('keyup', onKeyUp, false);
-  return {};
+  return {
+    onKeyUp,
+  };
 }

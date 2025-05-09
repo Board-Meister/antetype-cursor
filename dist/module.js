@@ -1004,8 +1004,9 @@ function useDelete({
       void herald.dispatch(new CustomEvent(o2.SAVE, { detail: { state } }));
     }
   };
-  document.addEventListener("keyup", onKeyUp, false);
-  return {};
+  return {
+    onKeyUp
+  };
 }
 
 // src/module.ts
@@ -1033,11 +1034,12 @@ function Cursor(params) {
   const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params, settings);
   const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
   useResize(params, showSelected, settings);
-  useDelete(params, selected, settings);
+  const { onKeyUp } = useDelete(params, selected, settings);
   canvas.addEventListener("mousedown", onDown, false);
   canvas.addEventListener("mouseup", onUp, false);
   canvas.addEventListener("mousemove", onMove, false);
   canvas.addEventListener("mouseout", onOut, false);
+  canvas.addEventListener("keyup", onKeyUp, false);
   const unregister = herald.batch([
     {
       event: o.CLOSE,
@@ -1046,6 +1048,7 @@ function Cursor(params) {
         canvas.removeEventListener("mouseup", onUp, false);
         canvas.removeEventListener("mousemove", onMove, false);
         canvas.removeEventListener("mouseout", onOut, false);
+        canvas.removeEventListener("keyup", onKeyUp, false);
         unregister();
       }
     },

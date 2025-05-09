@@ -1854,6 +1854,15 @@ var generateMouseEvent = (type, details = {}) => {
     ...details
   });
 };
+var generateKeyboardEvent = (type, key, details = {}) => {
+  return new KeyboardEvent(type, {
+    key,
+    code: key,
+    bubbles: true,
+    cancelable: true,
+    ...details
+  });
+};
 var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp = {}) => {
   const down = generateMouseEvent("mousedown", {
     clientX: x,
@@ -1879,89 +1888,47 @@ var defaultSettings = {
   }
 };
 
-// test/selection.spec.ts
-describe("Cursors selection", () => {
-  let cursor, core;
+// test/delete.spec.ts
+describe("Deleting selection", () => {
+  let cursor;
   const herald = new Herald();
   const canvas = document.createElement("canvas");
+  const core = Core({ herald, canvas });
   const awaitClick2 = (...rest) => awaitClick(herald, canvas, ...rest);
   const getSelected = () => cursor.selected.keys();
-  const getFirst = () => cursor.selected.firstKey();
   beforeEach(() => {
-    core = Core({ herald, canvas });
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
   afterEach(async () => {
     await close(herald);
   });
-  it("allows to select one or multiple layers", async () => {
+  it("is done correctly and can be redone", async () => {
     await initialize(herald, [
       generateRandomLayer(
-        "testSelect1",
+        "testDelete",
         10,
-        10,
-        10,
-        10
-      ),
-      generateRandomLayer(
-        "testSelect2",
-        25,
         10,
         10,
         10
       )
     ], defaultSettings);
+    let stateEvent;
     await awaitClick2(15, 15);
+    const unregister = herald.register(
+      o2.SAVE,
+      (e) => {
+        stateEvent = e;
+      }
+    );
     expect(getSelected().length).withContext("First layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(22.5, 15);
-    expect(getSelected().length).withContext("Nothing was selected").toBe(0);
-    await awaitClick2(30, 15);
-    expect(getSelected().length).withContext("Second layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Both are selected").toBe(2);
-    await awaitClick2(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(getSelected().length).withContext("One was unselected with ctrl").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(getSelected().length).withContext("Reselected with control").toBe(2);
-    await awaitClick2(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Shift key does nothing on already selected").toBe(2);
-    await awaitClick2(22.5, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Shift key nowhere does not change selection").toBe(2);
-  });
-  it("has working see-through selection", async () => {
-    await initialize(herald, [
-      generateRandomLayer(
-        "testSelect1",
-        10,
-        10,
-        40,
-        40
-      ),
-      generateRandomLayer(
-        "testSelect2",
-        30,
-        30,
-        40,
-        40
-      )
-    ], defaultSettings);
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Higher layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Amount of layer did not change").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Amount of layer did not change").toBe(0);
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Higher layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(35, 35, { shiftKey: true });
-    expect(getSelected().length).withContext("Both layers got selected").toBe(2);
-    await awaitClick2(35, 35, { shiftKey: true });
-    expect(getSelected().length).withContext("Both layers are still selected").toBe(2);
+    canvas.dispatchEvent(generateKeyboardEvent("keyup", "Delete"));
+    expect(core.meta.document.base.length).toBe(0);
+    const { state } = stateEvent.detail;
+    const { layer, data, undo, redo } = state[0];
+    await undo(layer, data);
+    expect(core.meta.document.base.length).toBe(1);
+    await redo(layer, data);
+    expect(core.meta.document.base.length).toBe(0);
+    unregister();
   });
 });

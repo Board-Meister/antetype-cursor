@@ -67,6 +67,16 @@ export const generateMouseEvent = (type: string, details: MouseEventInit = {}): 
   });
 }
 
+export const generateKeyboardEvent = (type: string, key: string, details: KeyboardEventInit = {}): KeyboardEvent => {
+  return new KeyboardEvent(type, {
+    key,
+    code: key,
+    bubbles: true,
+    cancelable: true,
+    ...details,
+  });
+}
+
 export const awaitClick = async (
   herald: Herald,
   canvas: HTMLCanvasElement,
@@ -92,3 +102,11 @@ export const awaitClick = async (
   canvas.dispatchEvent(up);
   await awaitEvent(herald, Event.UP);
 }
+
+export const defaultSettings = {
+  cursor: {
+    resize: {
+      buffer: 0, // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
+    }
+  }
+};

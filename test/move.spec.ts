@@ -4,7 +4,8 @@ import { Herald } from "@boardmeister/herald";
 import { type ICursor } from "@src/index";
 import Cursor from "@src/module";
 import {
-  initialize, close, generateRandomLayer, awaitClick as awaitClickBase, generateMouseEvent, awaitEvent
+  initialize, close, generateRandomLayer, awaitClick as awaitClickBase, generateMouseEvent, awaitEvent,
+  defaultSettings
 } from "test/helpers/definition.helper";
 import { Event } from "@src/index";
 import { Event as MementoEvent, type SaveEvent } from "@boardmeister/antetype-memento"
@@ -14,13 +15,7 @@ describe('Cursors movement', () => {
   let cursor: ICursor, core: ICore, moveMap: WeakMap<IBaseDef, {x: number, y: number}>;
   const herald = new Herald();
   const canvas = document.createElement('canvas');
-  const defaultSettings = {
-    cursor: {
-      resize: {
-        buffer: 0, // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
-      }
-    }
-  };
+
   const getSelected = (): Layout => cursor.selected.keys();
   const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
   const moveAndVerify = async (layout: Layout, x: number, y: number): Promise<void> => {
