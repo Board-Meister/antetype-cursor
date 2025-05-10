@@ -2173,7 +2173,7 @@ describe("Resize", () => {
       ex5: 0
     }, 1 /* REVERSE */);
   });
-  fit("can be undone and redone", async () => {
+  it("can be undone and redone", async () => {
     let stateEvent;
     const unregister = herald.register(
       o2.SAVE,

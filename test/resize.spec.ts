@@ -341,7 +341,7 @@ describe('Resize', () => {
     }, Direction.REVERSE);
   });
 
-  fit('can be undone and redone', async () => {
+  it('can be undone and redone', async () => {
     let stateEvent: CustomEvent<SaveEvent<IDeleteSaveData>>;
     const unregister = herald.register(
       MementoEvent.SAVE,
