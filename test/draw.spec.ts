@@ -6,11 +6,11 @@ import Cursor from "@src/module";
 import { initialize, close, generateRandomLayer, awaitEvent, generateMouseEvent } from "test/helpers/definition.helper";
 
 describe('Drawing selection', () => {
-  let cursor: ICursor;
+  let cursor: ICursor, core: ICore;
   const herald = new Herald();
   const canvas = document.createElement('canvas');
-  const core = Core({ herald, canvas }) as ICore;
   beforeEach(() => {
+    core = Core({ herald, canvas }) as ICore;
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
 

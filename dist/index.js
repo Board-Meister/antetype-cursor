@@ -26,6 +26,7 @@ var Event = /* @__PURE__ */ ((Event2) => {
   Event2["UP"] = "antetype.cursor.on.up";
   Event2["MOVE"] = "antetype.cursor.on.move";
   Event2["SLIP"] = "antetype.cursor.on.slip";
+  Event2["RESIZED"] = "antetype.cursor.on.resized";
   return Event2;
 })(Event || {});
 var AntetypeCursor = class {

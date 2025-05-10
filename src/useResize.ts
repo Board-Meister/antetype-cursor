@@ -2,7 +2,7 @@ import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
-import { Event, ICursorParams, ICursorSettings } from "@src/index";
+import { Event, ICursorParams, ICursorSettings, type IResizedEvent } from "@src/index";
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
 import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
@@ -154,19 +154,46 @@ export default function useResize(
     }
 
     saveResize(layers);
-    bulkResize(layers, x, y);
+    void bulkResize(layers, x, y);
   }
 
-  const bulkResize = (layout: Layout, x: number, y: number): void => {
-    for (const layer of layout) {
-      resize(layer, x, y);
+  const bulkResize = (layout: Layout, x: number, y: number): Promise<unknown[]> => {
+    const after = (success: boolean): void => {
+      resizeInProgress = false;
+      if (eventSnapshot.waiting) {
+        const { layout, movement } = eventSnapshot;
+        const { x, y } = movement!;
+        resetEventSnapshot();
+        void bulkResize(layout!, x, y)
+      } else {
+        void herald.dispatch(new CustomEvent<IResizedEvent>(Event.RESIZED, {
+          detail: { layout, success }
+        }))
+      }
+    }
+    resizeInProgress = true;
+    const promises = [];
+
+    try {
+      for (const layer of layout) {
+        promises.push(resize(layer, x, y));
+      }
+      const all = Promise.all(promises);
+
+      void all.then(() => { after(true) })
+        .catch(() => { after(false) })
+      ;
+
+      return all;
+    } catch (error) {
+      after(false);
+      throw error;
     }
   }
 
-  const resize = (original: IBaseDef, x: number, y: number): void => {
+  const resize = (original: IBaseDef, x: number, y: number): Promise<void>|void => {
     const layer = modules.core.clone.getClone(original);
-    // @TODO at some point figure out how to apply group scoped sizes and allow resizing nested
-    //    elements
+    // @TODO at some point figure out how to apply group scoped sizes and allow resizing nested elements
     if (layer.hierarchy?.parent !== modules.core.meta.document) {
       return;
     }
@@ -188,7 +215,7 @@ export default function useResize(
       x *= -1;
     }
 
-    void changeLayerSize(layer, x, y)
+    return changeLayerSize(layer, x, y)
   }
 
   const saveResize = (layers: Layout): void => {
@@ -242,33 +269,33 @@ export default function useResize(
     }
     const layer = modules.core.clone.getClone(original);
 
+    if (!isNotEditable(layer.size.w)) layer.size.w += x;
+    if (!isNotEditable(layer.size.h)) layer.size.h += y;
+
     if (layer.area) {
       if (!isNotEditable(layer.area.size.w)) layer.area.size.w += x;
       if (!isNotEditable(layer.area.size.h)) layer.area.size.h += y;
     }
 
     original = modules.core.clone.getOriginal(layer);
+    // TODO maybe to decuple into event
     if (modules.workspace) {
       const workspace = modules.workspace as IWorkspace;
       original.size.w = workspace.toRelative(layer.area!.size.w) as any;
       original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
     } else {
       const area = layer.area?.size ?? layer.size;
-      original.size.w = area.w + x;
-      original.size.h = area.h + y;
+      original.size.w = area.w;
+      original.size.h = area.h;
+      if (original.area) {
+        original.area.size.w = area.w;
+        original.area.size.h = area.h;
+      }
     }
 
-    resizeInProgress = true;
     await modules.core.view.resize(original, original.size);
     showSelected();
     modules.core.view.redraw();
-    resizeInProgress = false;
-    if (eventSnapshot.waiting) {
-      const { layout, movement } = eventSnapshot;
-      const { x, y } = movement!;
-      resetEventSnapshot();
-      bulkResize(layout!, x, y)
-    }
   }
 
   const resetEventSnapshot = (): void => {

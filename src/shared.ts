@@ -149,4 +149,9 @@ export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBase
     if (!isNotEditable(original.start.x)) original.start.x = area.x;
     if (!isNotEditable(original.start.y)) original.start.y = area.y;
   }
+
+  if (area && original.area?.start) {
+    if (!isNotEditable(original.area.start.x)) original.area.start.x = area.x;
+    if (!isNotEditable(original.area.start.y)) original.area.start.y = area.y;
+  }
 }

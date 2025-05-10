@@ -10,13 +10,13 @@ import { Event as MementoEvent, type SaveEvent } from "@boardmeister/antetype-me
 import type { IDeleteSaveData } from "@src/useDelete";
 
 describe('Deleting selection', () => {
-  let cursor: ICursor;
+  let cursor: ICursor, core: ICore;
   const herald = new Herald();
   const canvas = document.createElement('canvas');
-  const core = Core({ herald, canvas }) as ICore;
   const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
   const getSelected = (): Layout => cursor.selected.keys();
   beforeEach(() => {
+    core = Core({ herald, canvas }) as ICore;
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
 

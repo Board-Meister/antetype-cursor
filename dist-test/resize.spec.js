@@ -1899,98 +1899,317 @@ var awaitClick = async (herald, canvas, x, y, additionalDown = {}, additionalUp 
   canvas.dispatchEvent(up);
   await awaitEvent(herald, "antetype.cursor.on.up" /* UP */);
 };
-var defaultSettings = {
-  cursor: {
-    resize: {
-      buffer: 0
-      // Disable resizing so we can have layers of any size (clicking on buffer prevents selection)
-    }
-  }
-};
 
-// test/selection.spec.ts
-describe("Cursors selection", () => {
-  let cursor, core;
+// test/resize.spec.ts
+describe("Resize", () => {
+  let cursor, resizeMap, core;
   const herald = new Herald();
   const canvas = document.createElement("canvas");
   const awaitClick2 = (...rest) => awaitClick(herald, canvas, ...rest);
   const getSelected = () => cursor.selected.keys();
-  const getFirst = () => cursor.selected.firstKey();
+  const randomBetween = (min, max) => {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+  };
+  const settings = {
+    cursor: {
+      resize: {
+        buffer: 10
+      }
+    }
+  };
+  const resizeAndValidate = async (layout, x, y, expectedX = null, expectedY = null, direction = 0 /* DEFAULT */) => {
+    const layerStarts = [];
+    for (const layer of layout) {
+      if (!resizeMap.has(layer)) {
+        resizeMap.set(layer, {
+          ...layer.start,
+          ...layer.size
+        });
+      }
+      layerStarts.push(resizeMap.get(layer));
+    }
+    expectedX ??= x;
+    expectedY ??= y;
+    canvas.dispatchEvent(generateMouseEvent("mousemove", {
+      movementX: x,
+      movementY: y
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.resized" /* RESIZED */);
+    for (let i3 = 0; i3 < layout.length; i3++) {
+      const layer = layout[i3];
+      const { x: baseX, y: baseY, h, w } = layerStarts[i3];
+      let expectedW = w - expectedX, expectedH = h - expectedY, cX = expectedX, cY = expectedY;
+      if (direction === 1 /* REVERSE */) {
+        expectedW = w + cX;
+        expectedH = h + cY;
+        cX = 0;
+        cY = 0;
+      } else if (direction === 2 /* NO_X */) {
+        expectedW = w + cX;
+        cX = 0;
+      } else if (direction === 3 /* NO_Y */) {
+        expectedH = h + cY;
+        cY = 0;
+      }
+      expect(layer.start.x).withContext("Check X").toBe(baseX + cX);
+      expect(layer.size.w).withContext("Check width").toBe(expectedW);
+      expect(layer.start.y).withContext("Check Y").toBe(baseY + cY);
+      expect(layer.size.h).withContext("Check height").toBe(expectedH);
+      resizeMap.set(layer, {
+        x: baseX + cX,
+        y: baseY + cY,
+        w: expectedW,
+        h: expectedH
+      });
+    }
+  };
+  const doMovementSet = async ({
+    ey0 = null,
+    ex0 = null,
+    ey1 = null,
+    ex1 = null,
+    ey2 = null,
+    ex2 = null,
+    ey3 = null,
+    ex3 = null,
+    ey4 = null,
+    ex4 = null,
+    ey5 = null,
+    ex5 = null
+  } = {}, direction = 0 /* DEFAULT */) => {
+    await resizeAndValidate(core.meta.document.base, randomBetween(1, 10), 0, ex0, ey0, direction);
+    await resizeAndValidate(core.meta.document.base, 0, randomBetween(1, 10), ex1, ey1, direction);
+    await resizeAndValidate(core.meta.document.base, randomBetween(1, 10), randomBetween(1, 10), ex2, ey2, direction);
+    await resizeAndValidate(core.meta.document.base, randomBetween(1, 10), -randomBetween(1, 10), ex3, ey3, direction);
+    await resizeAndValidate(core.meta.document.base, -randomBetween(1, 10), -randomBetween(1, 10), ex4, ey4, direction);
+    await resizeAndValidate(core.meta.document.base, 0, 0, ex5, ey5, direction);
+  };
   beforeEach(() => {
     core = Core({ herald, canvas });
+    resizeMap = /* @__PURE__ */ new WeakMap();
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
   afterEach(async () => {
     await close(herald);
   });
-  it("allows to select one or multiple layers", async () => {
+  it("is done correctly", async () => {
     await initialize(herald, [
       generateRandomLayer(
-        "testSelect1",
+        "testResize",
         10,
         10,
-        10,
-        10
-      ),
-      generateRandomLayer(
-        "testSelect2",
-        25,
-        10,
-        10,
-        10
+        50,
+        50
       )
-    ], defaultSettings);
+    ], settings);
     await awaitClick2(15, 15);
     expect(getSelected().length).withContext("First layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(22.5, 15);
-    expect(getSelected().length).withContext("Nothing was selected").toBe(0);
-    await awaitClick2(30, 15);
-    expect(getSelected().length).withContext("Second layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Both are selected").toBe(2);
-    await awaitClick2(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(getSelected().length).withContext("One was unselected with ctrl").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(30, 15, { ctrlKey: true }, { ctrlKey: true });
-    expect(getSelected().length).withContext("Reselected with control").toBe(2);
-    await awaitClick2(15, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Shift key does nothing on already selected").toBe(2);
-    await awaitClick2(22.5, 15, { shiftKey: true }, { shiftKey: true });
-    expect(getSelected().length).withContext("Shift key nowhere does not change selection").toBe(2);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 15
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await doMovementSet();
+    let layer = core.meta.document.base[0];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }));
+    console.log(layer, {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }, canvas.style.cursor);
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are still selected").toBe(1);
+    await doMovementSet({}, 1 /* REVERSE */);
+    layer = core.meta.document.base[0];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are selected").toBe(1);
+    await doMovementSet({}, 2 /* NO_X */);
+    layer = core.meta.document.base[0];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are selected").toBe(1);
+    await doMovementSet({}, 3 /* NO_Y */);
   });
-  it("has working see-through selection", async () => {
+  it("can affect multiple layers at once", async () => {
     await initialize(herald, [
       generateRandomLayer(
-        "testSelect1",
+        "testResize1",
         10,
         10,
-        40,
-        40
+        50,
+        50
       ),
       generateRandomLayer(
-        "testSelect2",
-        30,
-        30,
-        40,
-        40
+        "testResize2",
+        60,
+        60,
+        50,
+        50
+      ),
+      generateRandomLayer(
+        "testResize3",
+        110,
+        110,
+        50,
+        50
       )
-    ], defaultSettings);
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Higher layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Amount of layer did not change").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect1");
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Amount of layer did not change").toBe(0);
-    await awaitClick2(35, 35);
-    expect(getSelected().length).withContext("Higher layer was selected").toBe(1);
-    expect(getFirst()?.type).toBe("testSelect2");
-    await awaitClick2(35, 35, { shiftKey: true });
-    expect(getSelected().length).withContext("Both layers got selected").toBe(2);
-    await awaitClick2(35, 35, { shiftKey: true });
-    expect(getSelected().length).withContext("Both layers are still selected").toBe(2);
+    ], settings);
+    await awaitClick2(15, 15);
+    await awaitClick2(65, 65, { shiftKey: true });
+    await awaitClick2(115, 115, { shiftKey: true });
+    expect(getSelected().length).withContext("All layers are selected").toBe(3);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 15
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await doMovementSet();
+    let layer = core.meta.document.base[2];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }));
+    console.log(layer, {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }, canvas.style.cursor);
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are still selected").toBe(3);
+    await doMovementSet({}, 1 /* REVERSE */);
+    layer = core.meta.document.base[2];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are selected").toBe(3);
+    await doMovementSet({}, 2 /* NO_X */);
+    layer = core.meta.document.base[2];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + 5,
+      clientY: layer.start.y + layer.size.h - 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("All layers are selected").toBe(3);
+    await doMovementSet({}, 3 /* NO_Y */);
+  });
+  it("depends where the cursor lies", async () => {
+    await initialize(herald, [
+      generateRandomLayer(
+        "testResize",
+        10,
+        10,
+        50,
+        50
+      )
+    ], settings);
+    await awaitClick2(15, 15);
+    expect(getSelected().length).withContext("First layer was selected").toBe(1);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 25
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await doMovementSet({
+      ey0: 0,
+      ey1: 0,
+      ey2: 0,
+      ey3: 0,
+      ey4: 0,
+      ey5: 0
+    });
+    let layer = core.meta.document.base[0];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w - 5,
+      clientY: layer.start.y + layer.size.h / 2
+    }));
+    console.log(layer, layer.start.x + layer.size.w - 5, layer.start.y + layer.size.h / 2);
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("First layer is selected when switching to right").toBe(1);
+    await doMovementSet({
+      ey0: 0,
+      ey1: 0,
+      ey2: 0,
+      ey3: 0,
+      ey4: 0,
+      ey5: 0
+    }, 1 /* REVERSE */);
+    layer = core.meta.document.base[0];
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w / 2,
+      clientY: layer.start.y + 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("First layer is selected when switching to top").toBe(1);
+    await doMovementSet({
+      ex0: 0,
+      ex1: 0,
+      ex2: 0,
+      ex3: 0,
+      ex4: 0,
+      ex5: 0
+    });
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: layer.start.x + layer.size.w / 2,
+      clientY: layer.start.y + layer.size.h - 5
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    expect(getSelected().length).withContext("First layer is selected when switching to bottom").toBe(1);
+    await doMovementSet({
+      ex0: 0,
+      ex1: 0,
+      ex2: 0,
+      ex3: 0,
+      ex4: 0,
+      ex5: 0
+    }, 1 /* REVERSE */);
+  });
+  fit("can be undone and redone", async () => {
+    let stateEvent;
+    const unregister = herald.register(
+      o2.SAVE,
+      (e) => {
+        stateEvent = e;
+      }
+    );
+    await initialize(herald, [
+      generateRandomLayer(
+        "testResize",
+        10,
+        10,
+        50,
+        50
+      )
+    ], settings);
+    await awaitClick2(15, 15);
+    expect(getSelected().length).withContext("First layer was selected").toBe(1);
+    canvas.dispatchEvent(generateMouseEvent("mousedown", {
+      clientX: 15,
+      clientY: 15
+    }));
+    await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
+    await resizeAndValidate(core.meta.document.base, 10, 10);
+    const { state } = stateEvent.detail;
+    const { layer, data, undo, redo } = state[0];
+    await undo(layer, data);
+    expect(core.meta.document.base[0].start.x).toBe(10);
+    expect(core.meta.document.base[0].start.y).toBe(10);
+    expect(core.meta.document.base[0].size.w).toBe(50);
+    expect(core.meta.document.base[0].size.h).toBe(50);
+    await redo(layer, data);
+    expect(core.meta.document.base[0].start.x).toBe(20);
+    expect(core.meta.document.base[0].start.y).toBe(20);
+    expect(core.meta.document.base[0].size.w).toBe(40);
+    expect(core.meta.document.base[0].size.h).toBe(40);
+    unregister();
   });
 });

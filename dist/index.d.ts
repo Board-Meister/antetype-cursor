@@ -349,13 +349,19 @@ export interface PositionEvent {
 export interface CalcEvent {
 	values: Record<string, number>;
 }
+export interface IResizedEvent {
+	layout: Layout;
+	success: boolean;
+}
+export type ResizedEvent = CustomEvent<IResizedEvent>;
 declare enum Event$1 {
 	CALC = "antetype.cursor.calc",
 	POSITION = "antetype.cursor.position",
 	DOWN = "antetype.cursor.on.down",
 	UP = "antetype.cursor.on.up",
 	MOVE = "antetype.cursor.on.move",
-	SLIP = "antetype.cursor.on.slip"
+	SLIP = "antetype.cursor.on.slip",
+	RESIZED = "antetype.cursor.on.resized"
 }
 export interface ICursor {
 	selected: IIterableWeakMap<IBaseDef, true>;

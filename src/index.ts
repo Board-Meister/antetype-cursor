@@ -1,7 +1,7 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
 import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions } from "@boardmeister/herald"
-import type { ModulesEvent, Modules, ICore, IBaseDef } from "@boardmeister/antetype-core"
+import type { ModulesEvent, Modules, ICore, IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type Cursor from "@src/module";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import { IIterableWeakMap } from "@src/IterableWeakMap";
@@ -19,6 +19,13 @@ export interface CalcEvent {
   values: Record<string, number>;
 }
 
+export interface IResizedEvent {
+  layout: Layout;
+  success: boolean;
+}
+
+export type ResizedEvent = CustomEvent<IResizedEvent>;
+
 export enum Event {
   CALC = 'antetype.cursor.calc',
   POSITION = 'antetype.cursor.position',
@@ -26,6 +33,7 @@ export enum Event {
   UP = 'antetype.cursor.on.up',
   MOVE = 'antetype.cursor.on.move',
   SLIP = 'antetype.cursor.on.slip',
+  RESIZED = 'antetype.cursor.on.resized',
 }
 
 export interface ICursor {

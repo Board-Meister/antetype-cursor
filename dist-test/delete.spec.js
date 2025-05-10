@@ -970,6 +970,10 @@ var setNewPositionOnOriginal = (modules, layer, x, y) => {
     if (!isNotEditable(original.start.x)) original.start.x = area.x;
     if (!isNotEditable(original.start.y)) original.start.y = area.y;
   }
+  if (area && original.area?.start) {
+    if (!isNotEditable(original.area.start.x)) original.area.start.x = area.x;
+    if (!isNotEditable(original.area.start.y)) original.area.start.y = area.y;
+  }
 };
 
 // src/useSelection.ts
@@ -1465,11 +1469,38 @@ function useResize({
       return;
     }
     saveResize(layers);
-    bulkResize(layers, x, y);
+    void bulkResize(layers, x, y);
   };
   const bulkResize = (layout, x, y) => {
-    for (const layer of layout) {
-      resize(layer, x, y);
+    const after = (success) => {
+      resizeInProgress = false;
+      if (eventSnapshot.waiting) {
+        const { layout: layout2, movement } = eventSnapshot;
+        const { x: x2, y: y2 } = movement;
+        resetEventSnapshot();
+        void bulkResize(layout2, x2, y2);
+      } else {
+        void herald.dispatch(new CustomEvent("antetype.cursor.on.resized" /* RESIZED */, {
+          detail: { layout, success }
+        }));
+      }
+    };
+    resizeInProgress = true;
+    const promises = [];
+    try {
+      for (const layer of layout) {
+        promises.push(resize(layer, x, y));
+      }
+      const all = Promise.all(promises);
+      void all.then(() => {
+        after(true);
+      }).catch(() => {
+        after(false);
+      });
+      return all;
+    } catch (error) {
+      after(false);
+      throw error;
     }
   };
   const resize = (original, x, y) => {
@@ -1491,7 +1522,7 @@ function useResize({
     if (mode === 3 /* LEFT */ || mode === 6 /* TOP_LEFT */ || mode === 7 /* BOTTOM_LEFT */) {
       x *= -1;
     }
-    void changeLayerSize(layer, x, y);
+    return changeLayerSize(layer, x, y);
   };
   const saveResize = (layers) => {
     if (saved) {
@@ -1540,6 +1571,8 @@ function useResize({
       return;
     }
     const layer = modules.core.clone.getClone(original);
+    if (!isNotEditable(layer.size.w)) layer.size.w += x;
+    if (!isNotEditable(layer.size.h)) layer.size.h += y;
     if (layer.area) {
       if (!isNotEditable(layer.area.size.w)) layer.area.size.w += x;
       if (!isNotEditable(layer.area.size.h)) layer.area.size.h += y;
@@ -1551,20 +1584,16 @@ function useResize({
       original.size.h = workspace.toRelative(layer.area.size.h, "y");
     } else {
       const area = layer.area?.size ?? layer.size;
-      original.size.w = area.w + x;
-      original.size.h = area.h + y;
+      original.size.w = area.w;
+      original.size.h = area.h;
+      if (original.area) {
+        original.area.size.w = area.w;
+        original.area.size.h = area.h;
+      }
     }
-    resizeInProgress = true;
     await modules.core.view.resize(original, original.size);
     showSelected();
     modules.core.view.redraw();
-    resizeInProgress = false;
-    if (eventSnapshot.waiting) {
-      const { layout, movement } = eventSnapshot;
-      const { x: x2, y: y2 } = movement;
-      resetEventSnapshot();
-      bulkResize(layout, x2, y2);
-    }
   };
   const resetEventSnapshot = () => {
     eventSnapshot.waiting = false;
@@ -1890,13 +1919,13 @@ var defaultSettings = {
 
 // test/delete.spec.ts
 describe("Deleting selection", () => {
-  let cursor;
+  let cursor, core;
   const herald = new Herald();
   const canvas = document.createElement("canvas");
-  const core = Core({ herald, canvas });
   const awaitClick2 = (...rest) => awaitClick(herald, canvas, ...rest);
   const getSelected = () => cursor.selected.keys();
   beforeEach(() => {
+    core = Core({ herald, canvas });
     cursor = Cursor({ canvas, modules: { core }, herald });
   });
   afterEach(async () => {
