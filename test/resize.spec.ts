@@ -167,10 +167,6 @@ describe('Resize', () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + layer.size.h - 5,
     }));
-    console.log(layer, {
-      clientX: layer.start.x + layer.size.w - 5,
-      clientY: layer.start.y + layer.size.h - 5,
-    }, canvas.style.cursor);
 
     await awaitEvent(herald, Event.DOWN);
     expect(getSelected().length).withContext('All layers are still selected').toBe(1);
@@ -234,10 +230,6 @@ describe('Resize', () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + layer.size.h - 5,
     }));
-    console.log(layer, {
-      clientX: layer.start.x + layer.size.w - 5,
-      clientY: layer.start.y + layer.size.h - 5,
-    }, canvas.style.cursor);
 
     await awaitEvent(herald, Event.DOWN);
     expect(getSelected().length).withContext('All layers are still selected').toBe(3);
@@ -295,7 +287,6 @@ describe('Resize', () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + (layer.size.h/2),
     }));
-    console.log(layer, layer.start.x + layer.size.w - 5, layer.start.y + (layer.size.h/2));
 
     await awaitEvent(herald, Event.DOWN);
     expect(getSelected().length).withContext('First layer is selected when switching to right').toBe(1);

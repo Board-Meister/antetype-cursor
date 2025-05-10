@@ -1084,14 +1084,10 @@ function useSelection({
     }
     const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
     const selectedLayer = isAnySelected(down.layers);
-    if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
-      if (!down.shiftKey && !down.ctrlKey) {
-        resetSelected();
-      }
-      selected.set(newSelectedLayer, true);
-    } else if (selectedLayer) {
-      selected.set(selectedLayer, true);
+    if (!selectedLayer && !down.shiftKey && !down.ctrlKey) {
+      resetSelected();
     }
+    selected.set(newSelectedLayer, true);
     if (isFirstMotionAfterDown) {
       saveSelectedPosition();
     }
@@ -2015,10 +2011,6 @@ describe("Resize", () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + layer.size.h - 5
     }));
-    console.log(layer, {
-      clientX: layer.start.x + layer.size.w - 5,
-      clientY: layer.start.y + layer.size.h - 5
-    }, canvas.style.cursor);
     await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
     expect(getSelected().length).withContext("All layers are still selected").toBe(1);
     await doMovementSet({}, 1 /* REVERSE */);
@@ -2078,10 +2070,6 @@ describe("Resize", () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + layer.size.h - 5
     }));
-    console.log(layer, {
-      clientX: layer.start.x + layer.size.w - 5,
-      clientY: layer.start.y + layer.size.h - 5
-    }, canvas.style.cursor);
     await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
     expect(getSelected().length).withContext("All layers are still selected").toBe(3);
     await doMovementSet({}, 1 /* REVERSE */);
@@ -2132,7 +2120,6 @@ describe("Resize", () => {
       clientX: layer.start.x + layer.size.w - 5,
       clientY: layer.start.y + layer.size.h / 2
     }));
-    console.log(layer, layer.start.x + layer.size.w - 5, layer.start.y + layer.size.h / 2);
     await awaitEvent(herald, "antetype.cursor.on.down" /* DOWN */);
     expect(getSelected().length).withContext("First layer is selected when switching to right").toBe(1);
     await doMovementSet({

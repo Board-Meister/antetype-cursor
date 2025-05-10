@@ -160,15 +160,12 @@ export default function useSelection(
 
     const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
     const selectedLayer = isAnySelected(down.layers);
-    if (!seeThroughStackMap.has(newSelectedLayer) && !selectedLayer) {
-      if (!down.shiftKey && !down.ctrlKey) {
-        resetSelected();
-      }
 
-      selected.set(newSelectedLayer, true);
-    } else if (selectedLayer) {
-      selected.set(selectedLayer, true);
+    if (!selectedLayer && !down.shiftKey && !down.ctrlKey) {
+      resetSelected();
     }
+
+    selected.set(newSelectedLayer, true);
 
     if (isFirstMotionAfterDown) {
       saveSelectedPosition();
