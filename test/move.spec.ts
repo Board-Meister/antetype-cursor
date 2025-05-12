@@ -16,9 +16,15 @@ describe('Cursors movement', () => {
   const herald = new Herald();
   const canvas = document.createElement('canvas');
 
+  let cursorX = 0,
+    cursorY = 0;
   const getSelected = (): Layout => cursor.selected.keys();
-  const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
-  const moveAndVerify = async (layout: Layout, x: number, y: number): Promise<void> => {
+  const awaitClick = (...rest: unknown[]): Promise<void> => {
+    cursorX = rest[0] as number;
+    cursorY = rest[1] as number;
+    return awaitClickBase(herald, canvas, ...rest)
+  };
+  const moveAndVerify = async (layout: Layout, x: number, y: number, context = ''): Promise<void> => {
     const layerStarts = [];
     for (const layer of layout) {
       if (!moveMap.has(layer)) {
@@ -31,6 +37,8 @@ describe('Cursors movement', () => {
     }
 
     canvas.dispatchEvent(generateMouseEvent('mousemove', {
+      clientX: cursorX,
+      clientY: cursorY,
       movementX: x,
       movementY: y,
     }));
@@ -39,8 +47,8 @@ describe('Cursors movement', () => {
     for (let i = 0; i < layout.length; i++) {
       const layer = layout[i];
       const { x: baseX, y: baseY } = layerStarts[i];
-      expect(layer.start.x).withContext(`Check layer ${String(i + 1)} for X`).toBe(baseX + x);
-      expect(layer.start.y).withContext(`Check layer ${String(i + 1)} for Y`).toBe(baseY + y);
+      expect(layer.start.x).withContext(context + ` Check layer ${String(i + 1)} for X`).toBe(baseX + x);
+      expect(layer.start.y).withContext(context + ` Check layer ${String(i + 1)} for Y`).toBe(baseY + y);
 
       moveMap.set(layer, {
         x: baseX + x,
@@ -50,6 +58,8 @@ describe('Cursors movement', () => {
   }
 
   beforeEach(() => {
+    cursorX = 0;
+    cursorY = 0;
     moveMap = new WeakMap();
     core = Core({ herald, canvas }) as ICore;
     cursor = Cursor({ canvas, modules: { core }, herald });
@@ -155,5 +165,55 @@ describe('Cursors movement', () => {
     expect(toCheck.start.x).withContext('redo X').toBe(15);
     expect(toCheck.start.y).withContext('redo Y').toBe(16);
     unregister();
+  });
+
+  it('on the next moved layer unselects the previous one', async () => {
+    await initialize(herald, [
+      generateRandomLayer(
+        'testMove1',
+        10, 10,
+        10, 10,
+      ),
+      generateRandomLayer(
+        'testMove2',
+        25, 25,
+        10, 10,
+      ),
+      generateRandomLayer(
+        'testMove3',
+        40, 40,
+        10, 10,
+      ),
+    ], defaultSettings);
+
+    canvas.dispatchEvent(generateMouseEvent('mousedown', { clientX: 15, clientY: 15 }));
+    await awaitEvent(herald, Event.DOWN);
+    expect(getSelected().length).withContext('Before move down').toBe(0);
+
+    await moveAndVerify([core.meta.document.base[0]], 10, 1, '[First move]');
+    expect(getSelected().length).withContext('First move').toBe(1);
+    canvas.dispatchEvent(generateMouseEvent('mouseup', { clientX: 15, clientY: 15 }));
+    await awaitEvent(herald, Event.UP);
+    expect(getSelected().length).withContext('First move Up').toBe(1);
+
+    canvas.dispatchEvent(generateMouseEvent('mousedown', { clientX: 35, clientY: 35 }));
+    await awaitEvent(herald, Event.DOWN);
+    await moveAndVerify([core.meta.document.base[1]], 10, 1, '[Second move]');
+    expect(getSelected().length).withContext('Second move down').toBe(1);
+    await awaitEvent(herald, Event.UP);
+    expect(getSelected().length).withContext('First move Up').toBe(1);
+    expect(core.meta.document.base[0].start.x).toBe(20);
+    expect(core.meta.document.base[0].start.y).toBe(11);
+
+    canvas.dispatchEvent(generateMouseEvent('mousedown', { clientX: 45, clientY: 45 }));
+    await awaitEvent(herald, Event.DOWN);
+    await moveAndVerify([core.meta.document.base[2]], 10, 1, '[Third move]');
+    expect(getSelected().length).withContext('Second move down').toBe(1);
+    await awaitEvent(herald, Event.UP);
+    expect(getSelected().length).withContext('First move Up').toBe(1);
+    expect(core.meta.document.base[0].start.x).toBe(20);
+    expect(core.meta.document.base[0].start.y).toBe(11);
+    expect(core.meta.document.base[1].start.x).toBe(35);
+    expect(core.meta.document.base[1].start.y).toBe(26);
   });
 });

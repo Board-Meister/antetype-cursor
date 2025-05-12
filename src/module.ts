@@ -41,9 +41,11 @@ export default function Cursor(
     }
   });
   const { drawSelection } = useDraw(herald, ctx);
-  const { selected, showSelected, isSelected, resetSeeThroughStackMap } = useSelection(params, settings);
+  const {
+    selected, showSelected, isSelected, resetSeeThroughStackMap, selection
+  } = useSelection(params, settings);
   const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
-  useResize(params, showSelected, settings);
+  useResize(params, showSelected, settings, selection);
   const { onKeyUp } = useDelete(params, selected, settings);
 
   canvas.addEventListener('mousedown', onDown, false);

@@ -59,9 +59,6 @@ export interface ICursorSettings {
   }
   detect?: {
     disabled?: boolean;
-    move?: {
-      skipSelection?: boolean;
-    }
   }
   resize?: {
     disabled?: boolean;

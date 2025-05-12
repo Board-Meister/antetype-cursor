@@ -23,7 +23,13 @@ describe('Resize', () => {
   let cursor: ICursor, resizeMap: WeakMap<IBaseDef, {x: number, y: number, w: number, h: number}>, core: ICore;
   const herald = new Herald();
   const canvas = document.createElement('canvas');
-  const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
+  let cursorX = 0,
+    cursorY = 0;
+  const awaitClick = (...rest: unknown[]): Promise<void> => {
+    cursorX = rest[0] as number;
+    cursorY = rest[1] as number;
+    return awaitClickBase(herald, canvas, ...rest)
+  };
   const getSelected = (): Layout => cursor.selected.keys();
   const randomBetween = (min: number, max: number): number => { // min and max included
     return Math.floor(Math.random() * (max - min + 1) + min);
@@ -67,9 +73,13 @@ describe('Resize', () => {
     expectedX ??= x;
     expectedY ??= y;
     canvas.dispatchEvent(generateMouseEvent('mousemove', {
+      clientX: cursorX,
+      clientY: cursorY,
       movementX: x,
       movementY: y,
     }));
+    cursorX += x;
+    cursorY += y;
 
     await awaitEvent(herald, Event.RESIZED);
     for (let i = 0; i < layout.length; i++) {

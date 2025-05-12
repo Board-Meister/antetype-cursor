@@ -80,8 +80,6 @@ export default function useDetect(
   }
 
   const isDisabled = (): boolean => settings.detect?.disabled ?? false;
-  const skipSelectionOnMove = (): boolean => settings.detect?.move?.skipSelection ?? false;
-
   const calcPosition = async (x: number, y: number): Promise<{ x: number, y: number }> => {
     // if this operation will turn to be too expensive check this out https://stackoverflow.com/a/36860652/11495586
     const boundingBox = canvas!.getBoundingClientRect();
@@ -159,8 +157,8 @@ export default function useDetect(
     movementX: number,
     movementY: number,
   ): Promise<void> => {
-    const newLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove());
-    const newDeepLayer = getLayerByPosition(layout, x, y, skipSelectionOnMove(), true);
+    const newLayer = getLayerByPosition(layout, x, y, true);
+    const newDeepLayer = getLayerByPosition(layout, x, y, true, true);
 
     eventState.hover.x = x;
     eventState.hover.y = y;

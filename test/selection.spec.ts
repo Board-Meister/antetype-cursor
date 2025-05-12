@@ -93,7 +93,7 @@ describe('Cursors selection', () => {
     expect(getSelected().length).withContext('Amount of layer did not change').toBe(1);
     expect(getFirst()?.type).toBe('testSelect1')
     await awaitClick(35, 35);
-    expect(getSelected().length).withContext('Amount of layer did not change').toBe(0);
+    expect(getSelected().length).withContext('Layer selection restarted').toBe(0);
     await awaitClick(35, 35);
     expect(getSelected().length).withContext('Higher layer was selected').toBe(1);
     expect(getFirst()?.type).toBe('testSelect2')

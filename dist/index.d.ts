@@ -146,6 +146,7 @@ interface ModulesEvent {
 }
 declare type Module$1 = object;
 interface Modules {
+	core: ICore;
 	[key: string]: Module$1 | undefined;
 }
 type ITypeDefinitionPrimitive = "boolean" | "string" | "number";
@@ -384,9 +385,6 @@ export interface ICursorSettings {
 	};
 	detect?: {
 		disabled?: boolean;
-		move?: {
-			skipSelection?: boolean;
-		};
 	};
 	resize?: {
 		disabled?: boolean;

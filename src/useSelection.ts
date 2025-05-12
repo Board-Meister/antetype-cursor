@@ -14,6 +14,11 @@ export interface ISelection {
   showSelected: () => void;
   isSelected: (needle: IBaseDef) => IBaseDef|false;
   resetSeeThroughStackMap: VoidFunction;
+  selection: ISelectionInfo;
+}
+
+export interface ISelectionInfo {
+  layers: ISelectionDef[];
 }
 
 export type Selected = IIterableWeakMap<IBaseDef, true>;
@@ -43,10 +48,12 @@ export default function useSelection(
   settings: ICursorSettings,
 ): ISelection {
   const selected = IterableWeakMap<IBaseDef, true>();
-  let shown: ISelectionDef[] = [];
+  const selection: ISelectionInfo = {
+    layers: [],
+  };
   let canMove = false;
   let skipUp = false;
-  let skipMove = true;
+  let skipMove = false;
   let accumulatedMoveX = 0;
   let accumulatedMoveY = 0;
   let seeThroughStackMap = IterableWeakMap<IBaseDef, true>();
@@ -121,6 +128,10 @@ export default function useSelection(
     }
   }
 
+  /**
+   * This query is quite mischievous aka bad. It doesn't only return but also changes, so it will give different
+   * results when called two times.
+   */
   const shouldSkipMove = (e: CustomEvent<MoveEvent>): boolean => {
     if (!skipMove) {
       return false;
@@ -149,7 +160,7 @@ export default function useSelection(
     const isFirstMotionAfterDown = !skipUp;
 
     skipUp = true;
-    const { target: { down, hover: { mY, mX } } } = e.detail;
+    const { target: { down, hover: { mY, mX, layer } } } = e.detail;
     if (0 === down.layers.length) {
       if (!down.shiftKey && !down.ctrlKey) {
         resetSelected();
@@ -158,13 +169,12 @@ export default function useSelection(
       return;
     }
 
-    const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
-    const selectedLayer = isAnySelected(down.layers);
+    const selectedLayer = layer && isAnySelected([layer]);
 
     if (!selectedLayer && !down.shiftKey && !down.ctrlKey) {
       resetSelected();
     }
-
+    const newSelectedLayer = core.clone.getOriginal(down.layers[0]);
     selected.set(newSelectedLayer, true);
 
     if (isFirstMotionAfterDown) {
@@ -233,14 +243,14 @@ export default function useSelection(
   }
 
   const showSelected = (): void => {
-    for (const layer of shown) {
+    for (const layer of selection.layers) {
       core.manage.removeVolatile(layer);
     }
-    shown = [];
+    selection.layers = [];
 
     for (const layer of selected.keys()) {
       const { size, start } = getSizeAndStart(core.clone.getClone(layer));
-      const selection = {
+      const selectionLayer = {
         type: selectionType,
         size,
         start,
@@ -248,8 +258,8 @@ export default function useSelection(
           layer,
         }
       } as ISelectionDef;
-      shown.push(selection);
-      core.manage.addVolatile(selection);
+      selection.layers.push(selectionLayer);
+      core.manage.addVolatile(selectionLayer);
     }
     // @TODO event when selection has been added
     core.view.redraw();
@@ -261,6 +271,7 @@ export default function useSelection(
       return;
     }
     canMove = true;
+    skipMove = false;
   }
 
   const unregister = herald.batch([
@@ -304,6 +315,7 @@ export default function useSelection(
 
   return {
     selected,
+    selection,
     isSelected,
     showSelected,
     resetSeeThroughStackMap,

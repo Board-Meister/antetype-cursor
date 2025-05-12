@@ -6,7 +6,7 @@ import { Event, ICursorParams, ICursorSettings, type IResizedEvent } from "@src/
 import { ISelectionDef, selectionType } from "@src/module";
 import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
 import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
-import { getLayerFromSelection } from "@src/useSelection";
+import { getLayerFromSelection, type ISelectionInfo } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 
 interface IResizeSaveData {
@@ -53,6 +53,7 @@ export default function useResize(
   }: ICursorParams,
   showSelected: VoidFunction,
   settings: ICursorSettings,
+  selection: ISelectionInfo,
 ): void {
   let mode = ResizeMode.NONE,
     disableResize = false,
@@ -64,6 +65,21 @@ export default function useResize(
     layout: null,
     movement: null,
   };
+  const getTargetHover = (event: IEvent): ISelectionDef|null => {
+
+    if (!event.hover.layer) {
+      return null;
+    }
+
+    const get = modules.core.clone.getOriginal;
+    for (const selectionLayer of selection.layers) {
+      if (get(event.hover.layer) === get(getLayerFromSelection(selectionLayer))) {
+        return selectionLayer;
+      }
+    }
+
+    return null;
+  }
   const isDisabled = (): boolean => settings.resize?.disabled ?? false;
   const determinateCursorType = (layer: ISelectionDef|null, target: IEvent): string => {
     if (!layer || layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
@@ -116,11 +132,12 @@ export default function useResize(
       return;
     }
 
-    let { target: { hover: { layer } } } = e.detail;
+    const layer = getTargetHover(e.detail.target);
+
     // Specific cases when layers don't support `size` - like polygons
     if (layer) {
-      layer = getLayerFromSelection(modules.core.clone.getClone(layer));
-      const original = modules.core.clone.getOriginal(layer);
+      const base = getLayerFromSelection(modules.core.clone.getClone(layer));
+      const original = modules.core.clone.getOriginal(base);
       if (!original?.size) {
         return;
       }
@@ -314,9 +331,9 @@ export default function useResize(
       }
     }
 
-    const layer = target.hover.layer;
+    const layer = getTargetHover(target);
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer as ISelectionDef, target);
+      canvas!.style.cursor = determinateCursorType(layer, target);
     } else {
       resetMode();
     }
@@ -339,9 +356,9 @@ export default function useResize(
 
   const handleDown = (e: CustomEvent<DownEvent>): void => {
     const { target } = e.detail;
-    const layer = target?.hover?.layer;
+    const layer = getTargetHover(target);
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer as ISelectionDef, target);
+      canvas!.style.cursor = determinateCursorType(layer, target);
     } else {
       resetMode();
     }
@@ -357,14 +374,14 @@ export default function useResize(
     saved = false;
     disableResize = false;
     const { target } = e.detail;
-    const layer = target.hover.layer;
+    const layer = getTargetHover(target);
     if (mode !== ResizeMode.NONE) {
       e.preventDefault();
     }
     resetMode();
 
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer as ISelectionDef, target);
+      canvas!.style.cursor = determinateCursorType(layer, target);
     } else {
       resetCanvasCursor();
     }
