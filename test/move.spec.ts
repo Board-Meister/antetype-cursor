@@ -216,4 +216,61 @@ describe('Cursors movement', () => {
     expect(core.meta.document.base[1].start.x).toBe(35);
     expect(core.meta.document.base[1].start.y).toBe(26);
   });
+
+  it('changes cursor icon properly',  async () => {
+    await initialize(herald, [
+      generateRandomLayer(
+        'testMove1',
+        10, 10,
+        50, 50,
+      ),
+    ],  {
+      cursor: {
+        resize: {
+          buffer: 10,
+        }
+      }
+    });
+
+    let startX = 35,
+      startY = 35;
+    const verifyCursor = (cursor: string): void => {
+      expect(canvas.style.cursor).withContext(`X: ${String(startX)} Y: ${String(startY)}`).toBe(cursor);
+    }
+    const move = (x: number, y: number): Promise<void> => {
+      canvas.dispatchEvent(generateMouseEvent('mousemove', {
+        clientX: x,
+        clientY: y,
+        movementX: x - startX,
+        movementY: y - startY,
+      }));
+      startX = x;
+      startY = y;
+      return awaitEvent(herald, Event.MOVE);
+    }
+    await awaitClick(startX, startY);
+    verifyCursor('pointer');
+    await move(15, 15);
+    verifyCursor('nwse-resize');
+    await move(5, 5);
+    verifyCursor('default');
+    await move(55, 15);
+    verifyCursor('nesw-resize');
+    await move(55, 5);
+    verifyCursor('default');
+    await move(55, 55);
+    verifyCursor('nwse-resize');
+    await move(55, 65);
+    verifyCursor('default');
+    await move(15, 55);
+    verifyCursor('nesw-resize');
+    await move(35, 15);
+    verifyCursor('ns-resize');
+    await move(35, 55);
+    verifyCursor('ns-resize');
+    await move(15, 35);
+    verifyCursor('ew-resize');
+    await move(55, 35);
+    verifyCursor('ew-resize');
+  });
 });

@@ -82,8 +82,10 @@ export default function useResize(
   }
   const isDisabled = (): boolean => settings.resize?.disabled ?? false;
   const determinateCursorType = (layer: ISelectionDef|null, target: IEvent): string => {
+
     if (!layer || layer.selection.layer.hierarchy?.parent !== modules.core.meta.document) {
       mode = ResizeMode.NONE;
+
       return 'default';
     }
 
@@ -101,25 +103,30 @@ export default function useResize(
 
     if (top && left || bottom && right) {
       mode = top && left ? ResizeMode.TOP_LEFT : ResizeMode.BOTTOM_RIGHT;
+
       return 'nwse-resize';
     }
 
     if (top && right || bottom && left) {
       mode = top && right ? ResizeMode.TOP_RIGHT : ResizeMode.BOTTOM_LEFT;
+
       return 'nesw-resize';
     }
 
     if (top || bottom) {
       mode = top ? ResizeMode.TOP : ResizeMode.BOTTOM;
+
       return 'ns-resize';
     }
 
     if (left || right) {
       mode = left ? ResizeMode.LEFT : ResizeMode.RIGHT;
+
       return 'ew-resize';
     }
 
     resetMode();
+
     return 'pointer';
   }
 
@@ -335,6 +342,7 @@ export default function useResize(
     if (layer?.type === selectionType) {
       canvas!.style.cursor = determinateCursorType(layer, target);
     } else {
+      resetCanvasCursor();
       resetMode();
     }
   }
