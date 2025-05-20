@@ -1,5 +1,5 @@
 import type { IBaseDef, ICore, Layout } from "@boardmeister/antetype-core";
-import Core from "@boardmeister/antetype-core/src/core";
+import Core from "@boardmeister/antetype-core/dist/core";
 import { Herald } from "@boardmeister/herald";
 import { type ICursor } from "@src/index";
 import Cursor from "@src/module";

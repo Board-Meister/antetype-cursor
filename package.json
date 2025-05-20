@@ -1,7 +1,7 @@
 {
   "name": "@boardmeister/antetype-cursor",
-  "version": "0.0.1",
-  "description": "Example module, to be reused when creating new common modules",
+  "version": "0.0.2",
+  "description": "Module for antetype package, defines cursor actions on the canvas",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -10,7 +10,6 @@
   ],
   "scripts": {
     "typescript": "./node_modules/.bin/dts-bundle-generator --no-check --export-referenced-types false --project tsconfig.json -o dist/index.d.ts src/index.ts",
-    "link": "npm link @boardmeister/antetype-memento @boardmeister/antetype-workspace @boardmeister/antetype @boardmeister/antetype-core @boardmeister/antetype-transform @boardmeister/minstrel @boardmeister/herald @boardmeister/marshal",
     "build": "node esbuild.config.mjs && npm run typescript",
     "test": "npx jasmine-browser-runner runSpecs",
     "serve-jasmine": "npx jasmine-browser-runner serve"
@@ -51,5 +50,13 @@
     "terser": "^5.31.0",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1"
+  },
+  "dependencies": {
+    "@boardmeister/antetype-core": "^0.0.2",
+    "@boardmeister/antetype-memento": "^0.0.2",
+    "@boardmeister/antetype-workspace": "^0.0.2",
+    "@boardmeister/herald": "^0.0.1",
+    "@boardmeister/marshal": "^0.0.1",
+    "@boardmeister/minstrel": "^0.0.1"
   }
 }
