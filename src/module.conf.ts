@@ -1,23 +1,22 @@
 import type { IInjectable, Module } from "@boardmeister/marshal"
-import type { Minstrel } from "@boardmeister/minstrel"
 import type { Herald, ISubscriber, Subscriptions } from "@boardmeister/herald"
 import type Cursor from "@src/module";
 import { Event as AntetypeCoreEvent } from "@boardmeister/antetype-core"
 import type { ModulesEvent } from "@boardmeister/antetype-core"
 import type { IRequiredModules } from "@src/type.d";
+import type Marshal from "@boardmeister/marshal";
 
 export interface IInjected extends Record<string, object> {
-  minstrel: Minstrel;
+  marshal: Marshal;
   herald: Herald;
 }
 
 export class AntetypeCursor {
   #injected?: IInjected;
   #module: typeof Cursor|null = null;
-  // #instance: ICursor|null = null;
 
   static inject: Record<string, string> = {
-    minstrel: 'boardmeister/minstrel',
+    marshal: 'boardmeister/marshal',
     herald: 'boardmeister/herald',
   }
   inject(injections: IInjected): void {
@@ -27,7 +26,7 @@ export class AntetypeCursor {
   async register(event: CustomEvent<ModulesEvent>): Promise<void> {
     const { modules, canvas } = event.detail;
     if (!this.#module) {
-      const module = this.#injected!.minstrel.getResourceUrl(this as Module, 'module.js');
+      const module = this.#injected!.marshal.getResourceUrl(this as Module, 'module.js');
       this.#module = ((await import(module)) as { default: typeof Cursor }).default;
     }
     modules.cursor = this.#module({

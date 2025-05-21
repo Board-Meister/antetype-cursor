@@ -1,6 +1,6 @@
 {
   "name": "@boardmeister/antetype-cursor",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Module for antetype package, defines cursor actions on the canvas",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -56,7 +56,6 @@
     "@boardmeister/antetype-memento": "^0.0.2",
     "@boardmeister/antetype-workspace": "^0.0.2",
     "@boardmeister/herald": "^0.0.1",
-    "@boardmeister/marshal": "^0.0.1",
-    "@boardmeister/minstrel": "^0.0.1"
+    "@boardmeister/marshal": "^0.0.2"
   }
 }
