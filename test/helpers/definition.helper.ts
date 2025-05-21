@@ -1,7 +1,7 @@
 import type { IBaseDef, InitEvent, ISettings, Layout } from "@boardmeister/antetype-core";
 import { Event as CoreEvent } from "@boardmeister/antetype-core";
 import type { Herald } from "@boardmeister/herald";
-import { Event } from "@src/index";
+import { Event } from "@src/type.d";
 
 export const generateRandomLayer = (
   type: string,

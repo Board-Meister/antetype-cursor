@@ -1,9 +1,11 @@
 import type { IBaseDef, ICore, Layout } from "@boardmeister/antetype-core";
-import Core from "@boardmeister/antetype-core/dist/core";
+import { Core } from "@boardmeister/antetype-core";
 import { Herald } from "@boardmeister/herald";
-import { type ICursor } from "@src/index";
+import { type ICursor } from "@src/type.d";
 import Cursor from "@src/module";
-import { initialize, close, generateRandomLayer, awaitClick as awaitClickBase, defaultSettings } from "test/helpers/definition.helper";
+import {
+  initialize, close, generateRandomLayer, awaitClick as awaitClickBase, defaultSettings
+} from "test/helpers/definition.helper";
 
 describe('Cursors selection', () => {
   let cursor: ICursor, core: ICore;

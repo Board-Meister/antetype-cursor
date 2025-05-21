@@ -1,13 +1,14 @@
 import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
-import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
-import { Event, ICursorParams, ICursorSettings, type IResizedEvent } from "@src/index";
-import { ISelectionDef, selectionType } from "@src/module";
-import { DownEvent, IEvent, MoveEvent, SlipEvent, UpEvent } from "@src/useDetect";
 import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
 import { getLayerFromSelection, type ISelectionInfo } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
+import type {
+  ICursorParams, ICursorSettings, IEvent, ISelectionDef, MoveEvent, IResizedEvent, SlipEvent,
+  DownEvent, UpEvent
+} from "@src/type.d";
+import { Event, selectionType } from "@src/type.d";
 
 interface IResizeSaveData {
   x: number;
@@ -166,7 +167,7 @@ export default function useResize(
     if (mode === ResizeMode.TOP  || mode === ResizeMode.BOTTOM) x = 0;
 
     /** @TODO move to event, so we can decouple workspace from cursor */
-    const scale = modules.workspace ? (modules.workspace as IWorkspace).getScale() : 1;
+    const scale = modules.workspace ? (modules.workspace).getScale() : 1;
     x /= scale;
     y /= scale;
 
@@ -304,7 +305,7 @@ export default function useResize(
     original = modules.core.clone.getOriginal(layer);
     // TODO maybe to decuple into event
     if (modules.workspace) {
-      const workspace = modules.workspace as IWorkspace;
+      const workspace = modules.workspace;
       original.size.w = workspace.toRelative(layer.area!.size.w) as any;
       original.size.h = workspace.toRelative(layer.area!.size.h, 'y') as any;
     } else {
@@ -399,11 +400,11 @@ export default function useResize(
     {
       event: Event.MOVE,
       subscription: {
-        method: e => {
+        method: (e: CustomEvent<MoveEvent>) => {
           if (isDisabled()) {
             return;
           }
-          handleMove(e as CustomEvent<MoveEvent>);
+          handleMove(e);
         },
         priority: -10,
       },
@@ -411,22 +412,22 @@ export default function useResize(
     {
       event: Event.SLIP,
       subscription: {
-        method: e => {
+        method: (e: CustomEvent<SlipEvent>) => {
           if (isDisabled()) {
             return;
           }
-          revertCursorToDefault(e as CustomEvent<SlipEvent>);
+          revertCursorToDefault(e);
         },
       },
     },
     {
       event: Event.DOWN,
       subscription: {
-        method: e => {
+        method: (e: CustomEvent<DownEvent>) => {
           if (isDisabled()) {
             return;
           }
-          handleDown(e as CustomEvent<DownEvent>);
+          handleDown(e);
         },
         priority: -10,
       },
@@ -434,11 +435,11 @@ export default function useResize(
     {
       event: Event.UP,
       subscription: {
-        method: e => {
+        method: (e: CustomEvent<UpEvent>) => {
           if (isDisabled()) {
             return;
           }
-          handleUpAfterResize(e as CustomEvent<UpEvent>);
+          handleUpAfterResize(e);
         },
         priority: -10,
       },

@@ -1,13 +1,13 @@
-import { Event, ICursorParams, ICursorSettings } from "@src/index";
 import type { IBaseDef } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
-import { ISelectionDef, selectionType } from "@src/module";
 import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
-import { MoveEvent, UpEvent, type BaseEvent } from "@src/useDetect";
-import type { IWorkspace } from "@boardmeister/antetype-workspace";
+import type {
+  ISelectionDef, ICursorParams, ICursorSettings, MoveEvent, UpEvent, BaseEvent
+} from "@src/type.d";
+import { Event, selectionType } from "@src/type.d";
 
 export interface ISelection {
   selected: IIterableWeakMap<IBaseDef, true>;
@@ -187,7 +187,7 @@ export default function useSelection(
         return;
       }
       /** @TODO move to event, so we can decouple workspace from cursor */
-      const scale = modules.workspace ? (modules.workspace as IWorkspace).getScale() : 1;
+      const scale = modules.workspace ? (modules.workspace).getScale() : 1;
       // @TODO add event when layer was moved
       setNewPositionOnOriginal(modules, layer, mX/scale, mY/scale);
     });
@@ -277,32 +277,32 @@ export default function useSelection(
   const unregister = herald.batch([
     {
       event: Event.DOWN,
-      subscription: e => {
+      subscription: (e: CustomEvent<MoveEvent>) => {
         if (isDisabled()) {
           return;
         }
 
-        enableMove(e as CustomEvent<MoveEvent>)
+        enableMove(e)
       },
     },
     {
       event: Event.UP,
-      subscription: e => {
+      subscription: (e: CustomEvent<BaseEvent>) => {
         if (isDisabled()) {
           return;
         }
 
-        selectionMouseUp(e as CustomEvent<BaseEvent>)
+        selectionMouseUp(e)
       },
     },
     {
       event: Event.MOVE,
-      subscription: e => {
+      subscription: (e: CustomEvent<BaseEvent>) => {
         if (isDisabled()) {
           return;
         }
 
-        startSelectionMove(e as CustomEvent<BaseEvent>)
+        startSelectionMove(e)
       },
     },
     {

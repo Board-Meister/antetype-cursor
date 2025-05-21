@@ -1,9 +1,8 @@
 import type { Layout, IBaseDef, IStart, ISize, IParentDef } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace"
-import { selectionType } from "@src/module";
-import type { CalcEvent, IRequiredModules } from "@src/index";
-import { Event } from "@src/index";
+import type { IRequiredModules } from "@src/type.d";
 import type { Herald } from "@boardmeister/herald";
+import { type CalcEvent, Event, selectionType } from "@src/type.d";
 
 export const calc = <T extends Record<string, number>>(herald: Herald, toCalc: T): T => {
   const event = new CustomEvent<CalcEvent>(Event.CALC, { detail: { values: toCalc } });

@@ -1,7 +1,7 @@
 import type { ICore } from "@boardmeister/antetype-core";
-import Core from "@boardmeister/antetype-core/dist/core";
+import { Core } from "@boardmeister/antetype-core";
 import { Herald } from "@boardmeister/herald";
-import { Event, type ICursor } from "@src/index";
+import { Event, type ICursor } from "@src/type.d";
 import Cursor from "@src/module";
 import { initialize, close, generateRandomLayer, awaitEvent, generateMouseEvent } from "test/helpers/definition.helper";
 

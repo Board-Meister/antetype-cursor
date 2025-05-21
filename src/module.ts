@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import { ICursor, ICursorParams, type ICursorSettings } from "@src/index";
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { IBaseDef, DrawEvent } from "@boardmeister/antetype-core"
 import useSelection from "@src/useSelection";
@@ -7,15 +6,7 @@ import useDetect from "@src/useDetect";
 import useDraw from "@src/useDraw";
 import useResize from "@src/useResize";
 import useDelete from "@src/useDelete";
-
-export const selectionType = 'selection';
-
-export interface ISelectionDef extends IBaseDef {
-  type: 'selection',
-  selection: {
-    layer: IBaseDef;
-  }
-}
+import type { ICursorParams, ICursor, ICursorSettings } from "@src/type.d";
 
 export default function Cursor(
   params: ICursorParams

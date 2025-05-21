@@ -1,8 +1,8 @@
 import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
-import { ICursorParams, ICursorSettings } from "@src/index";
 import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
+import type { ICursorParams, ICursorSettings } from "@src/type.d";
 
 export interface IDelete {
   onKeyUp: (e: KeyboardEvent) => Promise<void>;

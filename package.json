@@ -52,7 +52,7 @@
     "typescript-eslint": "^8.0.1"
   },
   "dependencies": {
-    "@boardmeister/antetype-core": "^0.0.2",
+    "@boardmeister/antetype-core": "^0.0.3",
     "@boardmeister/antetype-memento": "^0.0.2",
     "@boardmeister/antetype-workspace": "^0.0.2",
     "@boardmeister/herald": "^0.0.1",

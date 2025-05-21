@@ -1,13 +1,13 @@
 import type { ICore, Layout } from "@boardmeister/antetype-core";
-import Core from "@boardmeister/antetype-core/dist/core";
+import { Core } from "@boardmeister/antetype-core";
 import { Herald } from "@boardmeister/herald";
-import { type ICursor } from "@src/index";
 import Cursor from "@src/module";
 import {
   initialize, close, generateRandomLayer, defaultSettings, awaitClick as awaitClickBase, generateKeyboardEvent
 } from "test/helpers/definition.helper";
 import { Event as MementoEvent, type SaveEvent } from "@boardmeister/antetype-memento"
 import type { IDeleteSaveData } from "@src/useDelete";
+import type { ICursor } from "@src/type.d";
 
 describe('Deleting selection', () => {
   let cursor: ICursor, core: ICore;

@@ -1,6 +1,9 @@
-import type { Layout, IBaseDef } from "@boardmeister/antetype-core"
-import { Event, ICursorParams, ICursorSettings, PositionEvent } from "@src/index";
+import type { Layout } from "@boardmeister/antetype-core"
 import { calc, getAllClickedLayers, getLayerByPosition } from "@src/shared";
+import type {
+  ICursorParams, ICursorSettings, IEvent, PositionEvent, DownEvent, UpEvent, MoveEvent, SlipEvent
+} from "@src/type.d";
+import { Event } from "@src/type.d";
 import { Selected } from "@src/useSelection";
 
 export interface IDetect {
@@ -8,45 +11,6 @@ export interface IDetect {
   onUp: (e: MouseEvent) => Promise<void>;
   onMove: (e: MouseEvent) => Promise<void>;
   onOut: (e: MouseEvent) => Promise<void>;
-}
-
-export interface IEventDown {
-  x: number;
-  y: number;
-  layers: Layout;
-  shiftKey: boolean;
-  ctrlKey: boolean;
-}
-
-export interface IEventHover {
-  layer: IBaseDef|null;
-  deep: IBaseDef|null;
-  x: number;
-  y: number;
-  // Movement
-  mY: number;
-  mX: number;
-}
-
-export interface IEvent {
-  isDown: boolean;
-  wasMoved: boolean;
-  selected: Selected;
-  down: IEventDown;
-  hover: IEventHover;
-}
-
-export interface BaseEvent {
-  origin: MouseEvent;
-  target: IEvent;
-}
-
-export type DownEvent = BaseEvent;
-export type UpEvent = BaseEvent;
-export type MoveEvent = BaseEvent;
-export interface SlipEvent extends BaseEvent {
-  from: IBaseDef|null;
-  to: IBaseDef|null;
 }
 
 export default function useDetect(
