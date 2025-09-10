@@ -1,5 +1,5 @@
 import { IIterableWeakMap } from "@src/IterableWeakMap";
-import type { IBaseDef, Layout, Modules } from "@boardmeister/antetype-core"
+import type { IBaseDef, ICore, Layout, Modules } from "@boardmeister/antetype-core"
 import type { IWorkspace } from "@boardmeister/antetype-workspace";
 
 export interface PositionEvent {

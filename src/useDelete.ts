@@ -6,6 +6,7 @@ import type { ICursorParams, ICursorSettings } from "@src/type.d";
 
 export interface IDelete {
   onKeyUp: (e: KeyboardEvent) => Promise<void>;
+  remove: (layers: IBaseDef[]) => Promise<void>;
 }
 
 export interface IDeleteSaveData {
@@ -22,20 +23,23 @@ export default function useDelete(
 ): IDelete {
   canvas!.setAttribute('tabindex', '0');
   const isDisabled = (): boolean => settings.delete?.disabled ?? false;
+
+  const remove = async (layers: IBaseDef[]): Promise<void> => {
+    layers.forEach(layer => {
+      modules.core.manage.remove(layer);
+      selected.delete(layer)
+    });
+    saveDelete(layers);
+    await modules.core.view.recalculate();
+    modules.core.view.redraw();
+  }
   const onKeyUp = async (e: KeyboardEvent): Promise<void> => {
     if (e.target !== canvas && e.target !== document.body || isDisabled()) {
       return;
     }
 
     if (e.code === "Delete" || e.code === "Backspace") {
-      const keys = selected.keys();
-      keys.forEach(key => {
-        modules.core.manage.remove(key);
-        selected.delete(key)
-      });
-      saveDelete(keys);
-      await modules.core.view.recalculate();
-      modules.core.view.redraw();
+      await remove(selected.keys())
     }
   }
 
@@ -65,5 +69,6 @@ export default function useDelete(
 
   return {
     onKeyUp,
+    remove,
   };
 }
