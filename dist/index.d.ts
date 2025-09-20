@@ -116,6 +116,8 @@ export interface IRequiredModules extends Modules {
 	workspace?: IWorkspace;
 }
 export function Cursor(params: ICursorParams): ICursor;
+export declare const ID = "cursor";
+export declare const VERSION = "0.0.5";
 
 export {
 	Event$1 as Event,
