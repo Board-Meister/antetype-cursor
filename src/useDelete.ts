@@ -1,12 +1,15 @@
-import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
+import type { CanvasChangeEvent, IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import type { ICursorParams, ICursorSettings } from "@src/type.d";
+import type { IEventRegistration } from "@boardmeister/herald";
+import { Event as CoreEvent } from "@boardmeister/antetype-core"
 
 export interface IDelete {
   onKeyUp: (e: KeyboardEvent) => Promise<void>;
   remove: (layers: IBaseDef[]) => Promise<void>;
+  events: IEventRegistration[];
 }
 
 export interface IDeleteSaveData {
@@ -16,12 +19,10 @@ export default function useDelete(
   {
     modules,
     herald,
-    canvas,
   }: ICursorParams,
   selected: Selected,
   settings: ICursorSettings,
 ): IDelete {
-  canvas!.setAttribute('tabindex', '0');
   const isDisabled = (): boolean => settings.delete?.disabled ?? false;
 
   const remove = async (layers: IBaseDef[]): Promise<void> => {
@@ -34,6 +35,7 @@ export default function useDelete(
     modules.core.view.redraw();
   }
   const onKeyUp = async (e: KeyboardEvent): Promise<void> => {
+    const canvas = modules.core.meta.getCanvas();
     if (e.target !== canvas && e.target !== document.body || isDisabled()) {
       return;
     }
@@ -70,5 +72,15 @@ export default function useDelete(
   return {
     onKeyUp,
     remove,
+    events: [
+      {
+        event: CoreEvent.CANVAS_CHANGE,
+        subscription: ({ detail: { current } }: CanvasChangeEvent) => {
+          if (current instanceof HTMLCanvasElement) {
+            current.setAttribute('tabindex', '0');
+          }
+        }
+      }
+    ]
   };
 }

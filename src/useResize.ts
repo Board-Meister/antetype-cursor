@@ -1,4 +1,4 @@
-import type { IBaseDef, Layout } from "@boardmeister/antetype-core"
+import type { Canvas, IBaseDef, Layout } from "@boardmeister/antetype-core"
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
@@ -49,13 +49,13 @@ interface IEventSnapshot {
 export default function useResize(
   {
     herald,
-    canvas,
     modules,
   }: ICursorParams,
   showSelected: VoidFunction,
   settings: ICursorSettings,
   selection: ISelectionInfo,
 ): void {
+  const getCanvas = (): Canvas|null => modules.core.meta.getCanvas();
   let mode = ResizeMode.NONE,
     disableResize = false,
     resizeInProgress = false,
@@ -341,7 +341,10 @@ export default function useResize(
 
     const layer = getTargetHover(target);
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer, target);
+      const canvas = getCanvas();
+      if (canvas instanceof HTMLCanvasElement) {
+        canvas.style.cursor = determinateCursorType(layer, target);
+      }
     } else {
       resetCanvasCursor();
       resetMode();
@@ -349,7 +352,10 @@ export default function useResize(
   }
 
   const resetCanvasCursor = (): void => {
-    canvas!.style.cursor = 'default';
+    const canvas = getCanvas();
+    if (canvas instanceof HTMLCanvasElement) {
+      canvas.style.cursor = 'default';
+    }
   }
 
   const revertCursorToDefault = (e: CustomEvent<SlipEvent>): void => {
@@ -367,7 +373,10 @@ export default function useResize(
     const { target } = e.detail;
     const layer = getTargetHover(target);
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer, target);
+      const canvas = getCanvas();
+      if (canvas instanceof HTMLCanvasElement) {
+        canvas.style.cursor = determinateCursorType(layer, target);
+      }
     } else {
       resetMode();
     }
@@ -390,7 +399,10 @@ export default function useResize(
     resetMode();
 
     if (layer?.type === selectionType) {
-      canvas!.style.cursor = determinateCursorType(layer, target);
+      const canvas = getCanvas();
+      if (canvas instanceof HTMLCanvasElement) {
+        canvas.style.cursor = determinateCursorType(layer, target);
+      }
     } else {
       resetCanvasCursor();
     }

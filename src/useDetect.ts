@@ -1,4 +1,4 @@
-import type { Layout } from "@boardmeister/antetype-core"
+import type { Canvas, Layout } from "@boardmeister/antetype-core"
 import { calc, getAllClickedLayers, getLayerByPosition } from "@src/shared";
 import type {
   ICursorParams, ICursorSettings, IEvent, PositionEvent, DownEvent, UpEvent, MoveEvent, SlipEvent
@@ -17,7 +17,6 @@ export default function useDetect(
   {
     herald,
     modules: { core },
-    canvas,
   }: ICursorParams,
   selected: Selected,
   settings: ICursorSettings,
@@ -43,12 +42,16 @@ export default function useDetect(
     },
   }
 
+  const getCanvas = (): Canvas|null => core.meta.getCanvas();
   const isDisabled = (): boolean => settings.detect?.disabled ?? false;
   const calcPosition = async (x: number, y: number): Promise<{ x: number, y: number }> => {
-    // if this operation will turn to be too expensive check this out https://stackoverflow.com/a/36860652/11495586
-    const boundingBox = canvas!.getBoundingClientRect();
-    x -= boundingBox.left;
-    y -= boundingBox.top;
+    const canvas = getCanvas();
+    if (canvas instanceof HTMLCanvasElement) {
+      // if this operation will turn to be too expensive check this out https://stackoverflow.com/a/36860652/11495586
+      const boundingBox = canvas.getBoundingClientRect();
+      x -= boundingBox.left;
+      y -= boundingBox.top;
+    }
 
     const event = new CustomEvent<PositionEvent>(Event.POSITION, { detail: { x, y } });
     await herald.dispatch(event)

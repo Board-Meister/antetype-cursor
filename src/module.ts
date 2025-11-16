@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { Event as CoreEvent } from "@boardmeister/antetype-core"
-import type { IBaseDef, DrawEvent } from "@boardmeister/antetype-core"
+import type { IBaseDef, DrawEvent, Canvas, CanvasChangeEvent } from "@boardmeister/antetype-core"
 import useSelection from "@src/useSelection";
 import useDetect from "@src/useDetect";
 import useDraw from "@src/useDraw";
@@ -11,11 +11,8 @@ import type { ICursorParams, ICursor, ICursorSettings } from "@src/type.d";
 export default function Cursor(
   params: ICursorParams
 ): ICursor {
-  const { canvas, herald, modules } = params;
-  if (!canvas) {
-    throw new Error('[Antetype Cursor] Canvas is empty!');
-  }
-  const ctx = canvas.getContext('2d')!;
+
+  const { herald, modules } = params;
 
   if (!modules.core.setting.has('cursor')) {
     modules.core.setting.set('cursor', {})
@@ -31,29 +28,46 @@ export default function Cursor(
       return true;
     }
   });
-  const { drawSelection } = useDraw(herald, ctx);
+  const { drawSelection } = useDraw(herald, modules.core);
   const {
     selected, showSelected, isSelected, resetSeeThroughStackMap, selection
   } = useSelection(params, settings);
   const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
   useResize(params, showSelected, settings, selection);
-  const { onKeyUp } = useDelete(params, selected, settings);
+  const { onKeyUp, events: deleteEvents } = useDelete(params, selected, settings);
 
-  canvas.addEventListener('mousedown', onDown, false);
-  canvas.addEventListener('mouseup', onUp, false);
-  canvas.addEventListener('mousemove', onMove, false);
-  canvas.addEventListener('mouseout', onOut, false);
-  canvas.addEventListener('keyup', onKeyUp, false);
+  const registerCanvasEvents = (canvas: Canvas|null): void => {
+    if (canvas instanceof HTMLCanvasElement) {
+      canvas.addEventListener('mousedown', onDown, false);
+      canvas.addEventListener('mouseup', onUp, false);
+      canvas.addEventListener('mousemove', onMove, false);
+      canvas.addEventListener('mouseout', onOut, false);
+      canvas.addEventListener('keyup', onKeyUp, false);
+    }
+  }
+
+  const unregisterCanvasEvents = (canvas: Canvas|null): void => {
+    if (canvas instanceof HTMLCanvasElement) {
+      canvas.removeEventListener('mousedown', onDown, false);
+      canvas.removeEventListener('mouseup', onUp, false);
+      canvas.removeEventListener('mousemove', onMove, false);
+      canvas.removeEventListener('mouseout', onOut, false);
+      canvas.removeEventListener('keyup', onKeyUp, false);
+    }
+  }
 
   const unregister = herald.batch([
     {
+      event: CoreEvent.CANVAS_CHANGE,
+      subscription: ({ detail: { previous, current } }: CanvasChangeEvent) => {
+        unregisterCanvasEvents(previous);
+        registerCanvasEvents(current)
+      }
+    },
+    {
       event: CoreEvent.CLOSE,
       subscription: () => {
-        canvas.removeEventListener('mousedown', onDown, false);
-        canvas.removeEventListener('mouseup', onUp, false);
-        canvas.removeEventListener('mousemove', onMove, false);
-        canvas.removeEventListener('mouseout', onOut, false);
-        canvas.removeEventListener('keyup', onKeyUp, false);
+        unregisterCanvasEvents(modules.core.meta.getCanvas());
         unregister();
       }
     },
@@ -70,7 +84,8 @@ export default function Cursor(
           el(element);
         }
       }
-    }
+    },
+    ...deleteEvents,
   ])
 
   return {

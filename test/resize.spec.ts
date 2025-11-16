@@ -142,9 +142,10 @@ describe('Resize', () => {
     await resizeAndValidate(core.meta.document.base, 0, 0, ex5, ey5, direction);
   }
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
+    core = Core({ herald });
     resizeMap = new WeakMap();
-    cursor = Cursor({ canvas, modules: { core }, herald });
+    cursor = Cursor({ modules: { core }, herald });
+    core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {

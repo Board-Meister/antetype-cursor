@@ -1,4 +1,4 @@
-import type { IBaseDef } from "@boardmeister/antetype-core"
+import type { IBaseDef, ICore } from "@boardmeister/antetype-core"
 import { calc } from "@src/shared";
 import type { Herald } from "@boardmeister/herald";
 
@@ -6,8 +6,13 @@ export interface IDraw {
   drawSelection: (layer: IBaseDef) => void;
 }
 
-export default function useDraw(herald: Herald, ctx: CanvasRenderingContext2D): IDraw {
+export default function useDraw(herald: Herald, core: ICore): IDraw {
   const drawSelectionRect = (x: number, y: number, w: number, h: number, thickness: number, fill: string): void => {
+    const canvas = core.meta.getCanvas();
+    if (!canvas) {
+      return;
+    }
+    const ctx = canvas.getContext('2d')!;
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(x, y);

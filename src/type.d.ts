@@ -37,7 +37,6 @@ export interface ICursor {
 }
 
 export interface ICursorParams {
-  canvas: HTMLCanvasElement|null,
   modules: IRequiredModules,
   herald: Herald,
 }

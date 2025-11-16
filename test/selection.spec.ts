@@ -15,8 +15,9 @@ describe('Cursors selection', () => {
   const getSelected = (): Layout => cursor.selected.keys();
   const getFirst = (): IBaseDef|null => cursor.selected.firstKey();
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
-    cursor = Cursor({ canvas, modules: { core }, herald });
+    core = Core({ herald });
+    cursor = Cursor({ modules: { core }, herald });
+    core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {

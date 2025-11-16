@@ -16,8 +16,9 @@ describe('Deleting selection', () => {
   const awaitClick = (...rest: unknown[]): Promise<void> => awaitClickBase(herald, canvas, ...rest);
   const getSelected = (): Layout => cursor.selected.keys();
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
-    cursor = Cursor({ canvas, modules: { core }, herald });
+    core = Core({ herald });
+    cursor = Cursor({ modules: { core }, herald });
+    core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {

@@ -61,8 +61,9 @@ describe('Cursors movement', () => {
     cursorX = 0;
     cursorY = 0;
     moveMap = new WeakMap();
-    core = Core({ herald, canvas }) as ICore;
-    cursor = Cursor({ canvas, modules: { core }, herald });
+    core = Core({ herald });
+    cursor = Cursor({ modules: { core }, herald });
+    core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {

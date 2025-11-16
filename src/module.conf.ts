@@ -35,8 +35,7 @@ export class AntetypeCursor {
           const module = this.#injected!.marshal.getResourceUrl(this as Module, 'module.js');
           this.#module = ((await import(module)) as { default: typeof Cursor }).default;
         }
-        return (modules, canvas) => this.#module!({
-          canvas,
+        return modules => this.#module!({
           modules: modules as IRequiredModules,
           herald: this.#injected!.herald
         })

@@ -10,8 +10,9 @@ describe('Drawing selection', () => {
   const herald = new Herald();
   const canvas = document.createElement('canvas');
   beforeEach(() => {
-    core = Core({ herald, canvas }) as ICore;
-    cursor = Cursor({ canvas, modules: { core }, herald });
+    core = Core({ herald });
+    cursor = Cursor({ modules: { core }, herald });
+    core.meta.setCanvas(canvas);
   });
 
   afterEach(async () => {
