@@ -1,5 +1,4 @@
 import type { Canvas, IBaseDef, Layout } from "@boardmeister/antetype-core"
-import { Event as CoreEvent } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { calc, isNotEditable, setNewPositionOnOriginal } from "@src/shared";
 import { getLayerFromSelection, type ISelectionInfo } from "@src/useSelection";
@@ -9,6 +8,8 @@ import type {
   DownEvent, UpEvent
 } from "@src/type.d";
 import { Event, selectionType } from "@src/type.d";
+import type { DispatchHelper } from "@src/module";
+import type { IEventRegistration } from "@boardmeister/herald";
 
 interface IResizeSaveData {
   x: number;
@@ -46,15 +47,19 @@ interface IEventSnapshot {
   movement: IMovement|null;
 }
 
+export interface IResizeReturn {
+    events: (anchor: Canvas|null) => IEventRegistration[]
+}
+
 export default function useResize(
   {
-    herald,
     modules,
   }: ICursorParams,
   showSelected: VoidFunction,
   settings: ICursorSettings,
   selection: ISelectionInfo,
-): void {
+  dispatchHelper: DispatchHelper,
+): IResizeReturn {
   const getCanvas = (): Canvas|null => modules.core.meta.getCanvas();
   let mode = ResizeMode.NONE,
     disableResize = false,
@@ -93,7 +98,7 @@ export default function useResize(
     const { start: { x: sX, y: sY }, size: { h, w } } = layer;
     const { x, y } = target.hover;
     // Buffer bottom doesn't matter as we don't detect that cursor is near layer, we detect when he enters it
-    const bufferTop = calc(herald, { bufferTop: settings.resize?.buffer ?? 10 }).bufferTop,
+    const bufferTop = calc(dispatchHelper, { bufferTop: settings.resize?.buffer ?? 10 }).bufferTop,
       bufferBottom = 0
     ;
     const top = y <= sY + bufferTop && y >= sY - bufferBottom,
@@ -191,7 +196,7 @@ export default function useResize(
         resetEventSnapshot();
         void bulkResize(layout!, x, y)
       } else {
-        void herald.dispatch(new CustomEvent<IResizedEvent>(Event.RESIZED, {
+        void dispatchHelper.dispatch(new CustomEvent<IResizedEvent>(Event.RESIZED, {
           detail: { layout, success }
         }))
       }
@@ -283,7 +288,10 @@ export default function useResize(
     });
 
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent<SaveEvent<IResizeSaveData>>(MementoEvent.SAVE, { detail: { state } }));
+      void dispatchHelper.dispatch(new CustomEvent<SaveEvent<IResizeSaveData>>(
+        MementoEvent.SAVE,
+        { detail: { state } },
+      ));
     }
   }
 
@@ -408,59 +416,59 @@ export default function useResize(
     }
   }
 
-  const unregister = herald.batch([
-    {
-      event: Event.MOVE,
-      subscription: {
-        method: (e: CustomEvent<MoveEvent>) => {
-          if (isDisabled()) {
-            return;
-          }
-          handleMove(e);
+  return {
+    events: (anchor: Canvas|null = null) => [
+      {
+        event: Event.MOVE,
+        subscription: {
+          method: (e: CustomEvent<MoveEvent>) => {
+            if (isDisabled()) {
+              return;
+            }
+            handleMove(e);
+          },
+          priority: -10,
         },
-        priority: -10,
+        anchor,
       },
-    },
-    {
-      event: Event.SLIP,
-      subscription: {
-        method: (e: CustomEvent<SlipEvent>) => {
-          if (isDisabled()) {
-            return;
-          }
-          revertCursorToDefault(e);
+      {
+        event: Event.SLIP,
+        subscription: {
+          method: (e: CustomEvent<SlipEvent>) => {
+            if (isDisabled()) {
+              return;
+            }
+            revertCursorToDefault(e);
+          },
         },
+        anchor,
       },
-    },
-    {
-      event: Event.DOWN,
-      subscription: {
-        method: (e: CustomEvent<DownEvent>) => {
-          if (isDisabled()) {
-            return;
-          }
-          handleDown(e);
+      {
+        event: Event.DOWN,
+        subscription: {
+          method: (e: CustomEvent<DownEvent>) => {
+            if (isDisabled()) {
+              return;
+            }
+            handleDown(e);
+          },
+          priority: -10,
         },
-        priority: -10,
+        anchor,
       },
-    },
-    {
-      event: Event.UP,
-      subscription: {
-        method: (e: CustomEvent<UpEvent>) => {
-          if (isDisabled()) {
-            return;
-          }
-          handleUpAfterResize(e);
+      {
+        event: Event.UP,
+        subscription: {
+          method: (e: CustomEvent<UpEvent>) => {
+            if (isDisabled()) {
+              return;
+            }
+            handleUpAfterResize(e);
+          },
+          priority: -10,
         },
-        priority: -10,
+        anchor,
       },
-    },
-    {
-      event: CoreEvent.CLOSE,
-      subscription: {
-        method: () => { unregister() },
-      },
-    }
-  ]);
+    ]
+  }
 }

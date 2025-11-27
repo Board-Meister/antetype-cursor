@@ -1,8 +1,9 @@
-import type { IBaseDef } from "@boardmeister/antetype-core"
-import { Event as CoreEvent } from "@boardmeister/antetype-core"
+import type { Canvas, IBaseDef } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
+import type { IEventRegistration } from "@boardmeister/herald";
 import IterableWeakMap, { IIterableWeakMap } from "@src/IterableWeakMap";
+import type { DispatchHelper } from "@src/module";
 import { getSizeAndStart, setNewPositionOnOriginal } from "@src/shared";
 import type {
   ISelectionDef, ICursorParams, ICursorSettings, MoveEvent, UpEvent, BaseEvent
@@ -15,6 +16,7 @@ export interface ISelection {
   isSelected: (needle: IBaseDef) => IBaseDef|false;
   resetSeeThroughStackMap: VoidFunction;
   selection: ISelectionInfo;
+  events: (anchor: Canvas|null) => IEventRegistration[]
 }
 
 export interface ISelectionInfo {
@@ -43,9 +45,9 @@ export interface IMoveSaveData {
 export default function useSelection(
   {
     modules,
-    herald,
   }: ICursorParams,
   settings: ICursorSettings,
+  dispatchHelper: DispatchHelper,
 ): ISelection {
   const selected = IterableWeakMap<IBaseDef, true>();
   const selection: ISelectionInfo = {
@@ -124,7 +126,10 @@ export default function useSelection(
     });
 
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent<SaveEvent<IMoveSaveData>>(MementoEvent.SAVE, {  detail: { state } }));
+      void dispatchHelper.dispatch(new CustomEvent<SaveEvent<IMoveSaveData>>(
+        MementoEvent.SAVE,
+        {  detail: { state } },
+      ));
     }
   }
 
@@ -274,50 +279,46 @@ export default function useSelection(
     skipMove = false;
   }
 
-  const unregister = herald.batch([
-    {
-      event: Event.DOWN,
-      subscription: (e: CustomEvent<MoveEvent>) => {
-        if (isDisabled()) {
-          return;
-        }
-
-        enableMove(e)
-      },
-    },
-    {
-      event: Event.UP,
-      subscription: (e: CustomEvent<BaseEvent>) => {
-        if (isDisabled()) {
-          return;
-        }
-
-        selectionMouseUp(e)
-      },
-    },
-    {
-      event: Event.MOVE,
-      subscription: (e: CustomEvent<BaseEvent>) => {
-        if (isDisabled()) {
-          return;
-        }
-
-        startSelectionMove(e)
-      },
-    },
-    {
-      event: CoreEvent.CLOSE,
-      subscription: {
-        method: () => { unregister() },
-      },
-    }
-  ]);
-
   return {
     selected,
     selection,
     isSelected,
     showSelected,
     resetSeeThroughStackMap,
+    events: (anchor: Canvas|null = null) => [
+      {
+        event: Event.DOWN,
+        subscription: (e: CustomEvent<MoveEvent>) => {
+          if (isDisabled()) {
+            return;
+          }
+
+          enableMove(e)
+        },
+        anchor,
+      },
+      {
+        event: Event.UP,
+        subscription: (e: CustomEvent<BaseEvent>) => {
+          if (isDisabled()) {
+            return;
+          }
+
+          selectionMouseUp(e)
+        },
+        anchor,
+      },
+      {
+        event: Event.MOVE,
+        subscription: (e: CustomEvent<BaseEvent>) => {
+          if (isDisabled()) {
+            return;
+          }
+
+          startSelectionMove(e)
+        },
+        anchor,
+      },
+    ]
   };
 }

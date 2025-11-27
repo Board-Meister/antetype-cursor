@@ -1,4 +1,5 @@
-import type { CanvasChangeEvent, IBaseDef, Layout } from "@boardmeister/antetype-core"
+import { DispatchHelper } from './module';
+import type { Canvas, CanvasChangeEvent, IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
@@ -9,7 +10,7 @@ import { Event as CoreEvent } from "@boardmeister/antetype-core"
 export interface IDelete {
   onKeyUp: (e: KeyboardEvent) => Promise<void>;
   remove: (layers: IBaseDef[]) => Promise<void>;
-  events: IEventRegistration[];
+  events: (anchor: Canvas|null) => IEventRegistration[];
 }
 
 export interface IDeleteSaveData {
@@ -18,10 +19,10 @@ export interface IDeleteSaveData {
 export default function useDelete(
   {
     modules,
-    herald,
   }: ICursorParams,
   selected: Selected,
   settings: ICursorSettings,
+  dispatchHelper: DispatchHelper,
 ): IDelete {
   const isDisabled = (): boolean => settings.delete?.disabled ?? false;
 
@@ -65,21 +66,25 @@ export default function useDelete(
     });
 
     if (state.length > 0) {
-      void herald.dispatch(new CustomEvent<SaveEvent<IDeleteSaveData>>(MementoEvent.SAVE, { detail: { state } }));
+      void dispatchHelper.dispatch(new CustomEvent<SaveEvent<IDeleteSaveData>>(
+        MementoEvent.SAVE,
+        { detail: { state } },
+      ));
     }
   }
 
   return {
     onKeyUp,
     remove,
-    events: [
+    events: (anchor: Canvas|null = null) => [
       {
         event: CoreEvent.CANVAS_CHANGE,
         subscription: ({ detail: { current } }: CanvasChangeEvent) => {
           if (current instanceof HTMLCanvasElement) {
             current.setAttribute('tabindex', '0');
           }
-        }
+        },
+        anchor,
       }
     ]
   };

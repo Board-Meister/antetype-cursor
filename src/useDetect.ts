@@ -1,4 +1,5 @@
 import type { Canvas, Layout } from "@boardmeister/antetype-core"
+import type { DispatchHelper } from "@src/module";
 import { calc, getAllClickedLayers, getLayerByPosition } from "@src/shared";
 import type {
   ICursorParams, ICursorSettings, IEvent, PositionEvent, DownEvent, UpEvent, MoveEvent, SlipEvent
@@ -15,11 +16,11 @@ export interface IDetect {
 
 export default function useDetect(
   {
-    herald,
     modules: { core },
   }: ICursorParams,
   selected: Selected,
   settings: ICursorSettings,
+  dispatchHelper: DispatchHelper,
 ): IDetect {
   const eventState: IEvent = {
     selected,
@@ -54,7 +55,7 @@ export default function useDetect(
     }
 
     const event = new CustomEvent<PositionEvent>(Event.POSITION, { detail: { x, y } });
-    await herald.dispatch(event)
+    await dispatchHelper.dispatch(event)
 
     return event.detail;
   }
@@ -76,7 +77,7 @@ export default function useDetect(
     eventState.down.ctrlKey = ctrlKey;
     eventState.down.layers = getAllClickedLayers(layout, x, y);
 
-    void herald.dispatch(new CustomEvent<DownEvent>(Event.DOWN, {
+    void dispatchHelper.dispatch(new CustomEvent<DownEvent>(Event.DOWN, {
       detail: {
         origin: e,
         target: eventState,
@@ -91,7 +92,7 @@ export default function useDetect(
     }
     eventState.isDown = false;
 
-    await herald.dispatch(new CustomEvent<UpEvent>(Event.UP, {
+    await dispatchHelper.dispatch(new CustomEvent<UpEvent>(Event.UP, {
       detail: { origin: e, target: eventState },
       cancelable: true,
     }));
@@ -107,10 +108,10 @@ export default function useDetect(
     const layout = core.meta.document.layout;
     let { clientX: x, clientY: y, movementX, movementY } = e;
     ({ x, y } = await calcPosition(x, y));
-    ({ movementX, movementY } = calc(herald, { movementX, movementY }));
+    ({ movementX, movementY } = calc(dispatchHelper, { movementX, movementY }));
     await updateHover(e, layout, x, y, movementX, movementY);
 
-    await herald.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
+    await dispatchHelper.dispatch(new CustomEvent<MoveEvent>(Event.MOVE, {
       detail: { origin: e, target: eventState },
       cancelable: true,
     }));
@@ -133,7 +134,7 @@ export default function useDetect(
     eventState.hover.mX = movementX;
 
     if (newLayer !== eventState.hover.layer) {
-      await herald.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, {
+      await dispatchHelper.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, {
         detail: {
           origin: e,
           target: eventState,
@@ -157,7 +158,7 @@ export default function useDetect(
   }
 
   const onOut = async (e: MouseEvent): Promise<void> => {
-    await herald.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, {
+    await dispatchHelper.dispatch(new CustomEvent<SlipEvent>(Event.SLIP, {
       detail: {
         origin: e,
         target: eventState,

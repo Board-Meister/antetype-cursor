@@ -7,12 +7,25 @@ import useDraw from "@src/useDraw";
 import useResize from "@src/useResize";
 import useDelete from "@src/useDelete";
 import type { ICursorParams, ICursor, ICursorSettings } from "@src/type.d";
+import type { IEventSettings } from "@boardmeister/herald";
+
+export interface DispatchHelper {
+  dispatch: (event: CustomEvent, settings?: IEventSettings) => Promise<void>;
+  dispatchSync: (event: CustomEvent, settings?: IEventSettings) => void;
+}
 
 export default function Cursor(
   params: ICursorParams
 ): ICursor {
-
   const { herald, modules } = params;
+  const dispatchHelper = {
+    _canvas: (): Canvas|null => modules.core.meta.getCanvas(),
+    dispatch: (event: CustomEvent, settings: IEventSettings = {}) =>
+      herald.dispatch(event, { origin: dispatchHelper._canvas(), ...settings }),
+    dispatchSync: (event: CustomEvent, settings: IEventSettings = {}) => {
+      herald.dispatchSync(event, { origin: dispatchHelper._canvas(), ...settings })
+    }
+  }
 
   if (!modules.core.setting.has('cursor')) {
     modules.core.setting.set('cursor', {})
@@ -30,11 +43,11 @@ export default function Cursor(
   });
   const { drawSelection } = useDraw(herald, modules.core);
   const {
-    selected, showSelected, isSelected, resetSeeThroughStackMap, selection
-  } = useSelection(params, settings);
-  const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings);
-  useResize(params, showSelected, settings, selection);
-  const { onKeyUp, events: deleteEvents } = useDelete(params, selected, settings);
+    selected, showSelected, isSelected, resetSeeThroughStackMap, selection, events: selectionEvents
+  } = useSelection(params, settings, dispatchHelper);
+  const { onDown, onUp, onMove, onOut } = useDetect(params, selected, settings, dispatchHelper);
+  const { events: resizeEvents } = useResize(params, showSelected, settings, selection, dispatchHelper);
+  const { onKeyUp, events: deleteEvents } = useDelete(params, selected, settings, dispatchHelper);
 
   const registerCanvasEvents = (canvas: Canvas|null): void => {
     if (canvas instanceof HTMLCanvasElement) {
@@ -56,37 +69,50 @@ export default function Cursor(
     }
   }
 
-  const unregister = herald.batch([
-    {
-      event: CoreEvent.CANVAS_CHANGE,
-      subscription: ({ detail: { previous, current } }: CanvasChangeEvent) => {
-        unregisterCanvasEvents(previous);
-        registerCanvasEvents(current)
-      }
-    },
-    {
-      event: CoreEvent.CLOSE,
-      subscription: () => {
-        unregisterCanvasEvents(modules.core.meta.getCanvas());
-        unregister();
-      }
-    },
-    {
-      event: CoreEvent.DRAW,
-      subscription: (event: CustomEvent<DrawEvent>): void => {
-        const { element } = event.detail;
-        const typeToAction: Record<string, (def: IBaseDef) => void> = {
-          selection: drawSelection,
-        };
+  const register = (anchor: Canvas|null = null): void => {
+    anchor ??= modules.core.meta.getCanvas();
 
-        const el = typeToAction[element.type]
-        if (typeof el == 'function') {
-          el(element);
-        }
-      }
-    },
-    ...deleteEvents,
-  ])
+    const unregister = herald.batch([
+      {
+        event: CoreEvent.CANVAS_CHANGE,
+        subscription: ({ detail: { previous, current } }: CanvasChangeEvent) => {
+          unregisterCanvasEvents(previous);
+          registerCanvasEvents(current)
+          unregister();
+          register(current);
+        },
+        anchor,
+      },
+      {
+        event: CoreEvent.CLOSE,
+        subscription: () => {
+          unregisterCanvasEvents(modules.core.meta.getCanvas());
+          unregister();
+        },
+        anchor,
+      },
+      {
+        event: CoreEvent.DRAW,
+        subscription: (event: CustomEvent<DrawEvent>): void => {
+          const { element } = event.detail;
+          const typeToAction: Record<string, (def: IBaseDef) => void> = {
+            selection: drawSelection,
+          };
+
+          const el = typeToAction[element.type]
+          if (typeof el == 'function') {
+            el(element);
+          }
+        },
+        anchor,
+      },
+      ...(deleteEvents(anchor)),
+      ...(selectionEvents(anchor)),
+      ...(resizeEvents(anchor)),
+    ])
+  }
+
+  register();
 
   return {
     drawSelection,

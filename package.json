@@ -13,7 +13,7 @@
     "build": "node esbuild.config.mjs && npm run typescript",
     "test": "npx jasmine-browser-runner runSpecs",
     "serve-jasmine": "npx jasmine-browser-runner serve",
-    "link": "npm link @boardmeister/antetype-core"
+    "link": "npm link @boardmeister/antetype-core @boardmeister/herald"
   },
   "repository": {
     "type": "git",
@@ -55,7 +55,6 @@
   "dependencies": {
     "@boardmeister/antetype-memento": "^0.0.4",
     "@boardmeister/antetype-workspace": "^0.0.2",
-    "@boardmeister/herald": "^0.0.1",
     "@boardmeister/marshal": "^0.0.2"
   }
 }

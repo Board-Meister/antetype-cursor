@@ -1,12 +1,11 @@
 import type { Layout, IBaseDef, IStart, ISize, IParentDef } from "@boardmeister/antetype-core"
-import type { IWorkspace } from "@boardmeister/antetype-workspace"
 import type { IRequiredModules } from "@src/type.d";
-import type { Herald } from "@boardmeister/herald";
 import { type CalcEvent, Event, selectionType } from "@src/type.d";
+import type { DispatchHelper } from "@src/module";
 
-export const calc = <T extends Record<string, number>>(herald: Herald, toCalc: T): T => {
+export const calc = <T extends Record<string, number>>(helper: DispatchHelper, toCalc: T): T => {
   const event = new CustomEvent<CalcEvent>(Event.CALC, { detail: { values: toCalc } });
-  herald.dispatchSync(event)
+  helper.dispatchSync(event)
 
   return event.detail.values as T;
 }
@@ -135,7 +134,7 @@ export const setNewPositionOnOriginal = (modules: IRequiredModules, layer: IBase
   // should we easy to understand and used by different modules
   const original = modules.core.clone.getOriginal(layer);
   if (modules.workspace) {
-    const workspace = modules.workspace as IWorkspace;
+    const workspace = modules.workspace;
     if (original.start) {
       if (!isNotEditable(original.start.x)) original.start.x = workspace.toRelative(layer.start.x) as any;
       if (!isNotEditable(original.start.y)) original.start.y = workspace.toRelative(layer.start.y, 'y') as any;
