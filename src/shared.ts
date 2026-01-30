@@ -77,6 +77,10 @@ export const getLayerByPosition = (
       if (subLayer) return subLayer;
     }
 
+    if (layer.type === "group") {
+      continue;
+    }
+
     return layer;
   }
 
