@@ -51,6 +51,7 @@ export interface ICursorSettings {
   }
   detect?: {
     disabled?: boolean;
+    skipGroups?: boolean;
   }
   resize?: {
     disabled?: boolean;

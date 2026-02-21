@@ -49,6 +49,7 @@ export const getLayerByPosition = (
   y: number,
   skipSelection = true,
   deep = false,
+  skipGroups = false,
 ): IBaseDef|null => {
   for(let i = layout.length - 1; i >= 0; i--) {
     const layer = layout[i] as IBaseDef;
@@ -72,12 +73,13 @@ export const getLayerByPosition = (
         y,
         skipSelection,
         true,
+        skipGroups,
       )
 
       if (subLayer) return subLayer;
     }
 
-    if (layer.type === "group") {
+    if (skipGroups && layer.type === "group") {
       continue;
     }
 

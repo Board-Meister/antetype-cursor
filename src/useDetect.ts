@@ -45,6 +45,7 @@ export default function useDetect(
 
   const getCanvas = (): Canvas|null => core.meta.getCanvas();
   const isDisabled = (): boolean => settings.detect?.disabled ?? false;
+  const skipGroupsInDeepSearch = (): boolean => settings.detect?.skipGroups ?? false;
   const calcPosition = async (x: number, y: number): Promise<{ x: number, y: number }> => {
     const canvas = getCanvas();
     if (canvas instanceof HTMLCanvasElement) {
@@ -125,8 +126,8 @@ export default function useDetect(
     movementX: number,
     movementY: number,
   ): Promise<void> => {
-    const newLayer = getLayerByPosition(layout, x, y, true);
-    const newDeepLayer = getLayerByPosition(layout, x, y, true, true);
+    const newLayer = getLayerByPosition(layout, x, y, true, false, skipGroupsInDeepSearch());
+    const newDeepLayer = getLayerByPosition(layout, x, y, true, true, skipGroupsInDeepSearch());
 
     eventState.hover.x = x;
     eventState.hover.y = y;
