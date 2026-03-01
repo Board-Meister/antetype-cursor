@@ -265,6 +265,8 @@ declare class Herald {
 	register(event: string, subscription: AmbiguousSubscription$1, constraint?: string | Module | null, sort?: boolean, symbol?: symbol | null, anchor?: Anchor$1): () => void;
 	unregister(event: string, symbol: symbol): void;
 }
+export function Cursor(params: ICursorParams): ICursor;
+type Selected = IIterableWeakMap<IBaseDef, true>;
 export interface PositionEvent {
 	x: number;
 	y: number;
@@ -361,7 +363,6 @@ export interface IRequiredModules extends Modules {
 	core: ICore;
 	workspace?: IWorkspace;
 }
-export function Cursor(params: ICursorParams): ICursor;
 export declare const ID = "cursor";
 export declare const VERSION = "0.0.5";
 

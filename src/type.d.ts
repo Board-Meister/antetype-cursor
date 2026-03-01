@@ -2,6 +2,7 @@ import { IIterableWeakMap } from "@src/IterableWeakMap";
 import type { IBaseDef, ICore, Layout, Modules } from "@boardmeister/antetype-core"
 import type { Herald } from "@boardmeister/herald"
 import type { IWorkspace } from "@boardmeister/antetype-workspace";
+import type { Selected } from "@src/useSelection";
 
 export interface PositionEvent {
   x: number;
