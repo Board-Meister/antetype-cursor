@@ -17,13 +17,13 @@ export interface DispatchHelper {
 export default function Cursor(
   params: ICursorParams
 ): ICursor {
-  const { herald, modules } = params;
+  const { modules } = params;
   const dispatchHelper = {
     _canvas: (): Canvas|null => modules.core.meta.getCanvas(),
     dispatch: (event: CustomEvent, settings: IEventSettings = {}) =>
-      herald.dispatch(event, { origin: dispatchHelper._canvas(), ...settings }),
+      modules.core.event.dispatch(event, { ...settings }),
     dispatchSync: (event: CustomEvent, settings: IEventSettings = {}) => {
-      herald.dispatchSync(event, { origin: dispatchHelper._canvas(), ...settings })
+      modules.core.event.dispatchSync(event, { ...settings })
     }
   }
 
@@ -41,7 +41,7 @@ export default function Cursor(
       return true;
     }
   });
-  const { drawSelection } = useDraw(herald, modules.core);
+  const { drawSelection } = useDraw(modules.core);
   const {
     selected, showSelected, isSelected, resetSeeThroughStackMap, selection, events: selectionEvents
   } = useSelection(params, settings, dispatchHelper);
@@ -69,27 +69,20 @@ export default function Cursor(
     }
   }
 
-  const register = (anchor: Canvas|null = null): void => {
-    anchor ??= modules.core.meta.getCanvas();
-
-    const unregister = herald.batch([
+  const register = (): void => {
+    modules.core.event.batch([
       {
         event: CoreEvent.CANVAS_CHANGE,
         subscription: ({ detail: { previous, current } }: CanvasChangeEvent) => {
           unregisterCanvasEvents(previous);
           registerCanvasEvents(current)
-          unregister();
-          register(current);
         },
-        anchor,
       },
       {
         event: CoreEvent.CLOSE,
         subscription: () => {
           unregisterCanvasEvents(modules.core.meta.getCanvas());
-          unregister();
         },
-        anchor,
       },
       {
         event: CoreEvent.DRAW,
@@ -104,11 +97,10 @@ export default function Cursor(
             el(element);
           }
         },
-        anchor,
       },
-      ...(deleteEvents(anchor)),
-      ...(selectionEvents(anchor)),
-      ...(resizeEvents(anchor)),
+      ...(deleteEvents()),
+      ...(selectionEvents()),
+      ...(resizeEvents()),
     ])
   }
 

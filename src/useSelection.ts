@@ -1,4 +1,4 @@
-import type { Canvas, IBaseDef } from "@boardmeister/antetype-core"
+import type { IBaseDef } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
 import type { IEventRegistration } from "@boardmeister/herald";
@@ -16,7 +16,7 @@ export interface ISelection {
   isSelected: (needle: IBaseDef) => IBaseDef|false;
   resetSeeThroughStackMap: VoidFunction;
   selection: ISelectionInfo;
-  events: (anchor: Canvas|null) => IEventRegistration[]
+  events: () => IEventRegistration[]
 }
 
 export interface ISelectionInfo {
@@ -285,7 +285,7 @@ export default function useSelection(
     isSelected,
     showSelected,
     resetSeeThroughStackMap,
-    events: (anchor: Canvas|null = null) => [
+    events: () => [
       {
         event: Event.DOWN,
         subscription: (e: CustomEvent<MoveEvent>) => {
@@ -295,7 +295,6 @@ export default function useSelection(
 
           enableMove(e)
         },
-        anchor,
       },
       {
         event: Event.UP,
@@ -306,7 +305,6 @@ export default function useSelection(
 
           selectionMouseUp(e)
         },
-        anchor,
       },
       {
         event: Event.MOVE,
@@ -317,7 +315,6 @@ export default function useSelection(
 
           startSelectionMove(e)
         },
-        anchor,
       },
     ]
   };

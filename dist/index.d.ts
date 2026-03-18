@@ -92,6 +92,16 @@ interface ISettingsDefinition {
 	name: string;
 	tabs: ISettingsDefinitionTab[];
 }
+interface IDestination {
+	type: string;
+}
+type IDestinations = IDestination;
+interface ISaveEvent {
+	document: IExportDef;
+	saved: boolean;
+	destination?: IDestinations;
+	additions: Record<string, any>;
+}
 declare type XValue = number;
 declare type YValue = XValue;
 interface IStart {
@@ -141,6 +151,18 @@ interface IDocumentDef extends IParentDef {
 	};
 	settings: ISettings;
 }
+type ExportLayout = (IExportBaseDef | IExportParentDef)[];
+interface IExportBaseDef<T = never> extends IBaseDef<T> {
+	hierarchy: undefined;
+}
+interface IExportParentDef<T = never> extends IParentDef<T> {
+	hierarchy: undefined;
+	layout: ExportLayout;
+}
+interface IExportDef {
+	base: ExportLayout;
+	settings: ISettings;
+}
 interface IFont {
 	url: string;
 	name: string;
@@ -155,7 +177,25 @@ interface IBox {
 	x: number;
 	y: number;
 }
+interface IDestinationInit extends Record<string, any> {
+	destination: IDestinations;
+	document?: IExportDef;
+}
+interface IDocumentInit extends Record<string, any> {
+	destination?: never;
+	document: IExportDef;
+}
+type IInit = IDestinationInit | IDocumentInit;
+interface ISave extends Record<string, any> {
+	document?: IExportDef;
+	destination?: IDestinations;
+}
 interface ICore extends Module$1 {
+	flow: {
+		save: (save?: ISave) => Promise<ISaveEvent>;
+		init: (init: IInit) => Promise<void>;
+		close: () => Promise<void>;
+	};
 	event: {
 		batch: (events: IEventRegistration[], anchor?: Canvas | null) => VoidFunction;
 		dispatch(event: CustomEvent, settings?: IEventSettings): Promise<void>;
@@ -167,6 +207,8 @@ interface ICore extends Module$1 {
 		layerDefinitions: () => ITypeDefinitionMap;
 		getCanvas: () => Canvas | null;
 		setCanvas: (newCanvas: null | Canvas) => Promise<void>;
+		export: () => IExportDef;
+		serialize: (definition: Layout | IBaseDef) => string;
 	};
 	clone: {
 		definitions: (data: IBaseDef) => Promise<IBaseDef>;

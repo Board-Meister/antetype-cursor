@@ -1,12 +1,11 @@
 import type { IBaseDef, ICore } from "@boardmeister/antetype-core"
 import { calc } from "@src/shared";
-import type { Herald } from "@boardmeister/herald";
 
 export interface IDraw {
   drawSelection: (layer: IBaseDef) => void;
 }
 
-export default function useDraw(herald: Herald, core: ICore): IDraw {
+export default function useDraw(core: ICore): IDraw {
   const drawSelectionRect = (x: number, y: number, w: number, h: number, thickness: number, fill: string): void => {
     const canvas = core.meta.getCanvas();
     if (!canvas) {
@@ -27,7 +26,7 @@ export default function useDraw(herald: Herald, core: ICore): IDraw {
   }
 
   const drawSelection = ({ start: { x, y }, size: { w, h } }: IBaseDef): void => {
-    const unit = calc(herald, { unit: 1 }).unit;
+    const unit = calc(core.event, { unit: 1 }).unit;
     drawSelectionRect(
       x - (unit * 2),
       y - (unit * 2),

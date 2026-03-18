@@ -1,5 +1,5 @@
 import { DispatchHelper } from './module';
-import type { Canvas, CanvasChangeEvent, IBaseDef, Layout } from "@boardmeister/antetype-core"
+import type { CanvasChangeEvent, IBaseDef, Layout } from "@boardmeister/antetype-core"
 import type { SaveEvent, IMementoState } from "@boardmeister/antetype-memento"
 import { Selected } from "@src/useSelection";
 import { Event as MementoEvent } from "@boardmeister/antetype-memento"
@@ -10,7 +10,7 @@ import { Event as CoreEvent } from "@boardmeister/antetype-core"
 export interface IDelete {
   onKeyUp: (e: KeyboardEvent) => Promise<void>;
   remove: (layers: IBaseDef[]) => Promise<void>;
-  events: (anchor: Canvas|null) => IEventRegistration[];
+  events: () => IEventRegistration[];
 }
 
 export interface IDeleteSaveData {
@@ -76,7 +76,7 @@ export default function useDelete(
   return {
     onKeyUp,
     remove,
-    events: (anchor: Canvas|null = null) => [
+    events: () => [
       {
         event: CoreEvent.CANVAS_CHANGE,
         subscription: ({ detail: { current } }: CanvasChangeEvent) => {
@@ -84,7 +84,6 @@ export default function useDelete(
             current.setAttribute('tabindex', '0');
           }
         },
-        anchor,
       }
     ]
   };

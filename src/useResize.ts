@@ -48,7 +48,7 @@ interface IEventSnapshot {
 }
 
 export interface IResizeReturn {
-    events: (anchor: Canvas|null) => IEventRegistration[]
+    events: () => IEventRegistration[]
 }
 
 export default function useResize(
@@ -417,7 +417,7 @@ export default function useResize(
   }
 
   return {
-    events: (anchor: Canvas|null = null) => [
+    events: () => [
       {
         event: Event.MOVE,
         subscription: {
@@ -429,7 +429,6 @@ export default function useResize(
           },
           priority: -10,
         },
-        anchor,
       },
       {
         event: Event.SLIP,
@@ -441,7 +440,6 @@ export default function useResize(
             revertCursorToDefault(e);
           },
         },
-        anchor,
       },
       {
         event: Event.DOWN,
@@ -454,7 +452,6 @@ export default function useResize(
           },
           priority: -10,
         },
-        anchor,
       },
       {
         event: Event.UP,
@@ -467,7 +464,6 @@ export default function useResize(
           },
           priority: -10,
         },
-        anchor,
       },
     ]
   }
