@@ -377,6 +377,7 @@ export interface IEventDown {
 export interface IEventHover {
 	layer: IBaseDef | null;
 	deep: IBaseDef | null;
+	layers: Layout;
 	x: number;
 	y: number;
 	// Movement

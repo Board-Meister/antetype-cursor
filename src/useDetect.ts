@@ -1,6 +1,6 @@
 import type { Canvas, Layout } from "@boardmeister/antetype-core"
 import type { DispatchHelper } from "@src/module";
-import { calc, getAllClickedLayers, getLayerByPosition } from "@src/shared";
+import { calc, getAllLayers, getLayerByPosition } from "@src/shared";
 import type {
   ICursorParams, ICursorSettings, IEvent, PositionEvent, DownEvent, UpEvent, MoveEvent, SlipEvent
 } from "@src/type.d";
@@ -36,6 +36,7 @@ export default function useDetect(
     hover: {
       layer: null,
       deep: null,
+      layers: [],
       x: 0,
       y: 0,
       mX: 0,
@@ -76,7 +77,7 @@ export default function useDetect(
     eventState.down.y = y;
     eventState.down.shiftKey = shiftKey;
     eventState.down.ctrlKey = ctrlKey;
-    eventState.down.layers = getAllClickedLayers(layout, x, y);
+    eventState.down.layers = getAllLayers(layout, x, y);
 
     void dispatchHelper.dispatch(new CustomEvent<DownEvent>(Event.DOWN, {
       detail: {
@@ -148,6 +149,7 @@ export default function useDetect(
 
     eventState.hover.layer = newLayer;
     eventState.hover.deep = newDeepLayer;
+    eventState.hover.layers = getAllLayers(layout, x, y);
   }
 
   const clearEventStateDown = (): void => {

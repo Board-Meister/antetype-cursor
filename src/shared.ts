@@ -89,7 +89,7 @@ export const getLayerByPosition = (
   return null;
 }
 
-export const getAllClickedLayers = (
+export const getAllLayers = (
   layout: Layout,
   x: number,
   y: number,
